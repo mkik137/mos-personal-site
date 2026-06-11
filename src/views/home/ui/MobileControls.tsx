@@ -1,3 +1,5 @@
+import "./MobileControls.css";
+
 export default function MobileControls() {
   return (
     <>

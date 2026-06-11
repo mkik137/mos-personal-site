@@ -1,3 +1,5 @@
+import "./WorkPanel.css";
+
 export default function WorkPanel() {
   return (
     <section className="panel" id="panel-work">

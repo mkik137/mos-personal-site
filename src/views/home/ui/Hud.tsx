@@ -1,3 +1,5 @@
+import "./Hud.css";
+
 export default function Hud() {
   return (
     <>

@@ -1,0 +1,27 @@
+/* ── interaction prompt ────────────────── */
+#prompt {
+  position: fixed;
+  left: 50%; bottom: 40px;
+  transform: translateX(-50%) translateY(16px);
+  z-index: 30;
+  display: flex; align-items: center; gap: 14px;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 999px;
+  padding: 12px 14px 12px 22px;
+  box-shadow: 0 14px 40px rgba(20,28,45,0.30);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16,1,0.3,1);
+  font-family: 'Pretendard', sans-serif;
+  max-width: calc(100vw - 40px);
+}
+#prompt.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+#prompt .ptxt { font-weight: 600; font-size: 15px; }
+#prompt .pkey {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px; font-weight: 700;
+  background: var(--accent); color: #fff;
+  width: 34px; height: 34px;
+  display: grid; place-items: center;
+  border-radius: 999px;
+}

@@ -1,3 +1,5 @@
+import "./PoiLabels.css";
+
 export default function PoiLabels() {
   return (
     <div id="labels">

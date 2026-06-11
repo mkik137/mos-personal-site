@@ -1,0 +1,5 @@
+/* stat row — 소개 패널 */
+.stat-row { display: grid; grid-template-columns: repeat(3,1fr); gap: 18px; }
+.stat .n { font-family: 'Poppins'; font-weight: 700; font-size: clamp(1.8rem,5vw,2.6rem); }
+.stat .n em { color: var(--accent); font-style: normal; }
+.stat .l { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.14em; color: var(--muted); margin-top: 4px; line-height: 1.5; }

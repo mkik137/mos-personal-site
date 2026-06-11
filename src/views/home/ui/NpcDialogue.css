@@ -1,0 +1,57 @@
+/* ── 가람 자막 대화 ─────────────────────── */
+#npc-dialogue {
+  position: fixed;
+  left: 50%; bottom: 40px;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 45;
+  width: min(720px, calc(100vw - 40px));
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+#npc-dialogue.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; cursor: pointer; }
+#npc-dialogue .dlg-box {
+  position: relative;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 18px;
+  padding: 26px 28px 20px;
+  box-shadow: 0 18px 50px rgba(20,28,45,0.34);
+  font-family: 'Pretendard', sans-serif;
+}
+#npc-dialogue .dlg-name {
+  position: absolute; top: -14px; left: 22px;
+  background: var(--accent); color: #fff;
+  font-weight: 700; font-size: 14px;
+  padding: 5px 16px; border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(255,91,53,0.4);
+}
+#npc-dialogue .dlg-text {
+  margin: 4px 0 0;
+  font-size: 1.12rem; line-height: 1.6; font-weight: 500;
+  min-height: 1.6em;
+  letter-spacing: -0.01em;
+}
+/* 타이핑 커서 */
+#npc-dialogue.show .dlg-text::after {
+  content: '▋';
+  margin-left: 2px;
+  color: var(--accent);
+  animation: dlg-blink 0.9s steps(1) infinite;
+}
+@keyframes dlg-blink { 50% { opacity: 0; } }
+#npc-dialogue .dlg-hint {
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  margin-top: 14px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.5);
+}
+#npc-dialogue .dlg-key {
+  font-weight: 700; color: #fff;
+  background: rgba(255,255,255,0.14);
+  border-radius: 7px; padding: 2px 8px;
+}
+@media (max-width: 560px) {
+  #npc-dialogue { bottom: 96px; }
+  #npc-dialogue .dlg-text { font-size: 1rem; }
+}

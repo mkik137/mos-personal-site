@@ -1,3 +1,5 @@
+import "./NpcDialogue.css";
+
 export default function NpcDialogue() {
   return (
     <div id="npc-dialogue" aria-live="polite">

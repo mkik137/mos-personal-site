@@ -1,3 +1,5 @@
+import "./InteractionPrompt.css";
+
 export default function InteractionPrompt() {
   return (
     <div id="prompt">

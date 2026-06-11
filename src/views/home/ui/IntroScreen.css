@@ -1,0 +1,37 @@
+/* ── intro overlay ─────────────────────── */
+#intro {
+  position: fixed; inset: 0; z-index: 80;
+  display: grid; place-items: center;
+  background:
+    radial-gradient(120% 80% at 50% 8%, rgba(47,107,255,0.18) 0%, rgba(47,107,255,0) 55%),
+    radial-gradient(100% 70% at 50% 100%, rgba(255,91,53,0.18) 0%, rgba(255,91,53,0) 55%),
+    linear-gradient(180deg, #aee0f5 0%, #d6f0fb 45%, #fdf4e2 100%);
+  transition: opacity 0.7s ease;
+}
+#intro.hide { opacity: 0; pointer-events: none; }
+#intro .card {
+  text-align: center; padding: 40px 36px; max-width: 540px; margin: 20px;
+}
+#intro .badge {
+  font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.24em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 18px;
+}
+#intro h1 {
+  font-family: 'Poppins','Pretendard'; font-weight: 700; letter-spacing: -0.02em;
+  font-size: clamp(2.4rem, 8vw, 4rem); line-height: 1.02; margin: 0;
+  color: #1a2236;
+}
+#intro p { color: #4a5568; font-size: 1.05rem; line-height: 1.7; margin: 18px auto 0; max-width: 40ch; }
+#intro .keys { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 28px 0 30px; }
+#intro .keys .item { display: flex; align-items: center; gap: 8px; font-family: 'Space Mono', monospace; font-size: 12px; color: #4a5568; }
+#intro .keys kbd { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-bottom-width: 2px; border-radius: 6px; padding: 4px 9px; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--ink); }
+#intro .start {
+  display: inline-flex; align-items: center; gap: 10px;
+  background: linear-gradient(135deg, #ff5b35, #ff2bd6); color: #fff; border: 0; border-radius: 999px;
+  font-family: 'Poppins'; font-weight: 600; font-size: 15px;
+  padding: 15px 30px; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 10px 30px rgba(255,91,53,0.35);
+}
+#intro .start:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(255,91,53,0.5); }
+#intro .start .arrow { transition: transform 0.2s; }
+#intro .start:hover .arrow { transform: translateX(3px); }

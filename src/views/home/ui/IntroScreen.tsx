@@ -1,3 +1,5 @@
+import "./IntroScreen.css";
+
 export default function IntroScreen() {
   return (
     <div id="intro">

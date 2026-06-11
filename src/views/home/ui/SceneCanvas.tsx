@@ -1,3 +1,5 @@
+import "./SceneCanvas.css";
+
 export default function SceneCanvas() {
   return (
     <>

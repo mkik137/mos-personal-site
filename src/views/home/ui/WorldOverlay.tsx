@@ -1,3 +1,4 @@
+import "./WorldOverlay.css";
 import AboutPanel from "./panels/AboutPanel";
 import WorkPanel from "./panels/WorkPanel";
 import GuestbookPanel from "./panels/GuestbookPanel";

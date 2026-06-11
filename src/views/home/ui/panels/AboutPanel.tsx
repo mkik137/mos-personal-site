@@ -1,3 +1,5 @@
+import "./AboutPanel.css";
+
 export default function AboutPanel() {
   return (
     <section className="panel" id="panel-about">

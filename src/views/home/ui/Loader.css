@@ -1,0 +1,8 @@
+/* loading dots */
+#loader { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; background: #d6f0fb; transition: opacity 0.5s; }
+#loader.hide { opacity: 0; pointer-events: none; }
+#loader .dots { display: flex; gap: 8px; }
+#loader .dots i { width: 11px; height: 11px; border-radius: 999px; background: var(--accent); animation: bounce 1s infinite ease-in-out; }
+#loader .dots i:nth-child(2) { animation-delay: 0.15s; background: var(--accent2); }
+#loader .dots i:nth-child(3) { animation-delay: 0.30s; background: var(--leaf); }
+@keyframes bounce { 0%,80%,100% { transform: translateY(0); opacity: 0.5; } 40% { transform: translateY(-12px); opacity: 1; } }

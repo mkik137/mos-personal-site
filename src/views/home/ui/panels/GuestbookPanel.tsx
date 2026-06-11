@@ -1,3 +1,5 @@
+import "./GuestbookPanel.css";
+
 export default function GuestbookPanel() {
   return (
     <section className="panel" id="panel-guestbook">

@@ -1,0 +1,29 @@
+/* ── guestbook (inside panel) ────────────
+   .gb-card 등은 features/guestbook 의 JS가 동적 생성하는 DOM 도 사용 */
+.gb-form { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+.gb-form label { display: block; font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.12em; color: var(--faint); margin-bottom: 8px; }
+.gb-form input, .gb-form textarea {
+  width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 10px;
+  padding: 11px 13px; color: var(--ink); font-family: inherit; font-size: 0.96rem; outline: none;
+  transition: border-color 0.2s;
+}
+.gb-form input:focus, .gb-form textarea:focus { border-color: var(--accent); }
+.gb-form textarea { resize: none; }
+.gb-submit {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent); color: #fff; border: 0; border-radius: 999px;
+  font-family: 'Space Mono', monospace; font-size: 12px; letter-spacing: 0.08em;
+  padding: 11px 20px; cursor: pointer; transition: transform 0.2s, background 0.2s;
+}
+.gb-submit:hover { transform: translateY(-1px); background: #ff4a20; }
+
+#gb-list { columns: 2; column-gap: 14px; margin-top: 22px; }
+@media (max-width: 560px) { #gb-list { columns: 1; } }
+.gb-card { break-inside: avoid; margin-bottom: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+.gb-card .top { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.gb-card .av { width: 34px; height: 34px; border-radius: 999px; display: grid; place-items: center; color: #fff; font-family: 'Space Mono', monospace; font-size: 13px; flex-shrink: 0; }
+.gb-card .nm { font-weight: 600; font-size: 0.95rem; }
+.gb-card .tm { font-family: 'Space Mono', monospace; font-size: 10px; letter-spacing: 0.08em; color: var(--faint); }
+.gb-card p { margin: 0; color: var(--muted); line-height: 1.6; font-size: 0.95rem; white-space: pre-wrap; word-break: break-word; }
+@keyframes gbpop { from { opacity: 0; transform: translateY(-8px) scale(0.98);} to { opacity:1; transform:none; } }
+.gb-new { animation: gbpop 0.5s cubic-bezier(0.16,1,0.3,1); }

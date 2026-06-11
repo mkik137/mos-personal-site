@@ -66,7 +66,9 @@ shared/
 - **Hooks**: `use` prefix, camelCase (`useAuthSession.ts`)
 - **Utilities / helpers**: camelCase (`formatDate.ts`)
 - **Types / interfaces**: PascalCase, no `I` prefix (`UserProfile`, not `IUserProfile`)
-- **CSS Modules**: `ComponentName.module.css` co-located with component
+- **CSS**: plain `ComponentName.css` co-located with component (NOT CSS Modules — the world engine
+  (`widgets/world`) and `features/guestbook` drive the DOM imperatively via global selectors/classes,
+  so class names must stay literal). `shared/styles/globals.css` holds only design tokens, reset, fonts.
 - **Barrel files**: every slice root has `index.ts` — never skip it
 
 ---

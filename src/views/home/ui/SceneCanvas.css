@@ -1,0 +1,17 @@
+/* ── stage ─────────────────────────────── */
+#scene-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+/* sky gradient sits behind the canvas (canvas is alpha) — bright blue day */
+#sky {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(180deg, #4db4e8 0%, #7fcdf0 38%, #b6e6f7 70%, #e9f8fb 100%);
+}

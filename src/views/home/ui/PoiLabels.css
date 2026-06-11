@@ -1,0 +1,52 @@
+/* ── floating POI labels ───────────────── */
+#labels {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+.poi-label {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  will-change: transform, opacity;
+  transition: opacity 0.3s ease;
+  white-space: nowrap;
+}
+.poi-label[data-poi="about"]     { --poi: var(--poi-about); }
+.poi-label[data-poi="work"]      { --poi: var(--poi-work); }
+.poi-label[data-poi="guestbook"] { --poi: var(--poi-guestbook); }
+.poi-label .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.94);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--poi, var(--line));
+  border-radius: 999px;
+  padding: 7px 14px 7px 11px;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--poi, #4a8bff) 30%, transparent), 0 8px 24px rgba(30,40,60,0.16);
+  font-family: 'Poppins', 'Pretendard', sans-serif;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink);
+}
+.poi-label .dot {
+  width: 9px; height: 9px; border-radius: 999px;
+  background: var(--poi, var(--accent));
+  box-shadow: 0 0 8px var(--poi, var(--accent)), 0 0 0 4px color-mix(in srgb, var(--poi, var(--accent)) 24%, transparent);
+}
+.poi-label .tail {
+  display: block;
+  width: 2px; height: 22px;
+  margin: 0 auto;
+  background: linear-gradient(var(--poi, var(--accent)), transparent);
+  opacity: 0.7;
+}
+.poi-label .sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 400;
+}
