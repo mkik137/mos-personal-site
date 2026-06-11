@@ -49,8 +49,13 @@ const tmp2 = new THREE.Vector3();
 // ─────────────────────────────────────────────
 async function init() {
   const canvas = document.getElementById('scene-canvas');
-  renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, preserveDrawingBuffer: true });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  renderer = new THREE.WebGLRenderer({
+    canvas, antialias: true, alpha: true, preserveDrawingBuffer: true,
+    powerPreference: 'high-performance', // 하이브리드 환경에서 외장 GPU 우선 요청
+  });
+  // 모바일은 GPU 부담·발열을 줄이려 픽셀 비율을 더 낮게 캡.
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
