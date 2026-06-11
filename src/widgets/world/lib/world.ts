@@ -40,6 +40,24 @@ let activePoi = null;
 let frozen = false;
 let inspect = false;
 let started = false;
+let panelOpen = false;   // 패널(고서) 열림 — 월드 렌더링을 절약 모드로
+let panelOpenAt = 0;     // 열린 시각 — 펼침 연출이 끝나면 렌더링 완전 정지
+let frameSkip = false;
+
+// ── 가람 자막 대화 ──
+let dialogue = null;       // 진행 중인 대화 상태 { lines, index, poi, typing, full, timer }
+let aboutVisits = 0;       // 가람에게 말 건 횟수 (첫 만남 = 풀 소개, 이후 = 짧은 인사)
+const NPC_LINES_FIRST = [
+  '어… 안녕하세요! 이 작은 섬에 오신 걸 환영해요.',
+  '저는 가람이라고 해요. 화면 위에서 움직이는 것들을 만드는 사람이에요.',
+  '코드와 디자인 사이, 인터랙션이 일어나는 자리에서 작업하죠.',
+  '제 소개, 좀 더 자세히 보여드릴게요. 이쪽이에요 →',
+];
+const NPC_LINES_AGAIN = [
+  ['안녕, 또 오셨네요! 반가워요.', '소개 다시 띄워드릴게요 →'],
+  ['어, 다시 만났네요 👋', '제 소개 여기 있어요 →'],
+  ['또 들러주셨군요. 고마워요!', '바로 보여드릴게요 →'],
+];
 
 const tmp  = new THREE.Vector3();
 const tmp2 = new THREE.Vector3();
@@ -153,6 +171,12 @@ function bindEvents() {
   window.addEventListener('resize', resize);
   window.addEventListener('keydown', (e) => {
     if (e.repeat) return;
+    // 대화 중에는 키 입력을 대화 진행에만 사용 (이동·점프 차단).
+    if (dialogue) {
+      if (e.code === 'KeyE' || e.code === 'Enter' || e.code === 'Space') { e.preventDefault(); advanceDialogue(); }
+      else if (e.code === 'Escape') endDialogue();
+      return;
+    }
     setKey(e.code, true);
     if (e.code === 'KeyE' || e.code === 'Enter') tryInteract();
     if (e.code === 'Space') { e.preventDefault(); tryJump(); }
@@ -181,6 +205,8 @@ function bindEvents() {
 
   const prompt = document.getElementById('prompt');
   if (prompt) prompt.addEventListener('click', tryInteract);
+  const dlg = document.getElementById('npc-dialogue');
+  if (dlg) dlg.addEventListener('click', advanceDialogue);
   document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', closePanel));
   document.querySelector('#overlay .scrim').addEventListener('click', closePanel);
   const startBtn = document.getElementById('start-btn');
@@ -235,7 +261,71 @@ function setupJoystick() {
 // ─────────────────────────────────────────────
 function tryInteract() {
   if (frozen || !started) return;
-  if (activePoi) openPanel(activePoi);
+  if (!activePoi) return;
+  if (activePoi.id === 'about') startDialogue(activePoi);
+  else openPanel(activePoi);
+}
+
+// ─────────────────────────────────────────────
+//  가람 자막 대화
+// ─────────────────────────────────────────────
+function startDialogue(poi) {
+  frozen = true;
+  input.f = input.b = input.l = input.r = 0;
+  hidePrompt();
+
+  // 첫 만남이면 풀 소개, 이후엔 짧은 인사를 번갈아.
+  const lines = aboutVisits === 0
+    ? NPC_LINES_FIRST
+    : NPC_LINES_AGAIN[(aboutVisits - 1) % NPC_LINES_AGAIN.length];
+  aboutVisits++;
+
+  dialogue = { lines, index: -1, poi, typing: false, full: '', timer: 0 };
+  document.getElementById('npc-dialogue')?.classList.add('show');
+  nextDialogueLine();
+}
+
+// E / 클릭: 타이핑 중이면 즉시 완성, 아니면 다음 줄 (끝이면 패널 오픈)
+function advanceDialogue() {
+  if (!dialogue) return;
+  if (dialogue.typing) { finishTyping(); return; }
+  nextDialogueLine();
+}
+
+function nextDialogueLine() {
+  dialogue.index++;
+  if (dialogue.index >= dialogue.lines.length) { endDialogue(); return; }
+  typeLine(dialogue.lines[dialogue.index]);
+}
+
+function typeLine(text) {
+  const el = document.querySelector('#npc-dialogue .dlg-text');
+  if (!el) return;
+  clearInterval(dialogue.timer);
+  dialogue.full = text;
+  dialogue.typing = true;
+  el.textContent = '';
+  let i = 0;
+  dialogue.timer = window.setInterval(() => {
+    el.textContent = text.slice(0, ++i);
+    if (i >= text.length) { clearInterval(dialogue.timer); dialogue.typing = false; }
+  }, 32);
+}
+
+function finishTyping() {
+  if (!dialogue) return;
+  clearInterval(dialogue.timer);
+  const el = document.querySelector('#npc-dialogue .dlg-text');
+  if (el) el.textContent = dialogue.full;
+  dialogue.typing = false;
+}
+
+function endDialogue() {
+  const poi = dialogue?.poi;
+  if (dialogue) clearInterval(dialogue.timer);
+  document.getElementById('npc-dialogue')?.classList.remove('show');
+  dialogue = null;
+  if (poi) openPanel(poi);   // 대화가 끝나면 소개 패널 오픈
 }
 
 function tryJump() {
@@ -249,6 +339,8 @@ function openPanel(poi) {
   if (poi.panel) poi.panel.style.display = 'flex';
   overlay.classList.add('open');
   frozen = true;
+  panelOpen = true;
+  panelOpenAt = performance.now();
   input.f = input.b = input.l = input.r = 0;
   hidePrompt();
   if (poi.id === 'guestbook' && window.__initGuestbook) window.__initGuestbook();
@@ -260,6 +352,7 @@ function closePanel() {
   const overlay = document.getElementById('overlay');
   if (!overlay.classList.contains('open')) return;
   overlay.classList.remove('open');
+  panelOpen = false;
   setTimeout(() => { frozen = false; }, 120);
 }
 
@@ -278,6 +371,14 @@ function startWorld() {
 //  LOOP
 // ─────────────────────────────────────────────
 function loop() {
+  // 패널(고서) 열림 중엔 월드가 스크림에 가려 거의 안 보임.
+  // 펼침 연출(~0.9s) 동안만 절반 프레임 + 블룸 생략으로 배경을 유지하고,
+  // 연출이 끝나면 렌더링을 완전히 멈춰 패널 스크롤에 자원을 모두 양보.
+  if (panelOpen) {
+    if (performance.now() - panelOpenAt > 1300) return;
+    if ((frameSkip = !frameSkip)) return;
+  }
+
   const dt = Math.min(clock.getDelta(), 0.05);
   const t  = clock.elapsedTime;
 
@@ -288,7 +389,7 @@ function loop() {
   updateAmbient(t);
   updateLabels();
 
-  if (composer) composer.render();
+  if (composer && !panelOpen) composer.render();
   else renderer.render(scene, camera);
 }
 
@@ -455,6 +556,8 @@ function resize() {
   if (composer) composer.setSize(w, h);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  // 패널 열림으로 렌더링이 정지된 상태에서도 배경이 깨지지 않게 한 프레임 갱신
+  if (panelOpen) renderer.render(scene, camera);
 }
 
 // ─────────────────────────────────────────────

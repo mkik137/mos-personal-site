@@ -7,6 +7,7 @@ import Hud from "./Hud";
 import InteractionPrompt from "./InteractionPrompt";
 import MobileControls from "./MobileControls";
 import WorldOverlay from "./WorldOverlay";
+import NpcDialogue from "./NpcDialogue";
 import IntroScreen from "./IntroScreen";
 import Loader from "./Loader";
 
@@ -37,6 +38,7 @@ export default function HomePage() {
       <InteractionPrompt />
       <MobileControls />
       <WorldOverlay />
+      <NpcDialogue />
       <IntroScreen />
       <Loader />
     </>

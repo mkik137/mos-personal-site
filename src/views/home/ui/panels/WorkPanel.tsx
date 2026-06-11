@@ -2,7 +2,7 @@ export default function WorkPanel() {
   return (
     <section className="panel" id="panel-work">
       <div className="panel-head">
-        <span className="panel-eyebrow">— Studio Archive / 작업 &amp; 경력</span>
+        <span className="panel-eyebrow">— 작업 &amp; 경력</span>
         <button className="panel-close" data-close>
           닫기 <span>✕</span>
         </button>

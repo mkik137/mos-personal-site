@@ -37,8 +37,8 @@ export async function buildPOIs(ctx) {
     id: 'work', type: 'door',
     x: -17.5 * S, z: 14 * S, r: 6.8, // 건물 중심 + 충돌 반경(5.0) 바깥에서 잡히는 반경
     object: studio,
-    prompt: 'STUDIO 들어가기 — 작업 & 경력',
-    labelTitle: 'Studio Archive', labelSub: 'WORK & CAREER',
+    prompt: '작업 & 경력 보러 가기',
+    labelTitle: '작업 & 경력', labelSub: 'WORK & CAREER',
     labelY: 6.4,
   });
 

@@ -74,7 +74,7 @@ export default function AboutPanel() {
         <hr className="rule" />
         <p className="kicker">— 더 보기</p>
         <p className="lead" style={{ marginTop: 12 }}>
-          스튜디오에 들어가면 작업과 경력을, 방명록 키오스크에서 한마디를 남길 수 있어요.
+          건물에 들어가면 작업 &amp; 경력을, 방명록 키오스크에서 한마디를 남길 수 있어요.
           섬을 천천히 둘러보세요. 🌿
         </p>
       </div>

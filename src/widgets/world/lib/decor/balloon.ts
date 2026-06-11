@@ -20,13 +20,15 @@ export function addBalloon({ scene, floaters }, x, z, color, seed) {
 
   // 실
   const str = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.01, 0.01, 3.0, 4),
+    new THREE.CylinderGeometry(0.01, 0.01, 4.5, 4),
     new THREE.MeshStandardMaterial({ color: 0x999 }),
   );
-  str.position.y = -2.1;
+  str.position.y = -2.85;
   g.add(str);
 
-  g.position.set(x, 3.4, z);
+  // 하늘 위에 둥실 — 풍선마다 높이를 조금씩 다르게
+  const baseY = 8.5 + (seed % 3) * 1.2;
+  g.position.set(x, baseY, z);
   scene.add(g);
-  floaters.push({ mesh: g, baseY: 3.4, amp: 0.3, phase: seed * 2, speed: 0.8 });
+  floaters.push({ mesh: g, baseY, amp: 0.45, phase: seed * 2, speed: 0.8 });
 }

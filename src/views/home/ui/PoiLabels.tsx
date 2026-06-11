@@ -9,7 +9,7 @@ export default function PoiLabels() {
       </div>
       <div className="poi-label" data-poi="work">
         <span className="chip">
-          <span className="dot" /> Studio Archive <span className="sub">WORK</span>
+          <span className="dot" /> 작업 &amp; 경력 <span className="sub">WORK</span>
         </span>
         <span className="tail" />
       </div>

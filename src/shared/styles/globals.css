@@ -5,6 +5,7 @@
 
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css');
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@500;600;700&display=swap');
 
 :root {
   --bg:      #eef1f4;
@@ -195,45 +196,188 @@ body {
   border-radius: 999px;
 }
 
-/* ── content overlay / panels ──────────── */
+/* ── 가람 자막 대화 ─────────────────────── */
+#npc-dialogue {
+  position: fixed;
+  left: 50%; bottom: 40px;
+  transform: translateX(-50%) translateY(20px);
+  z-index: 45;
+  width: min(720px, calc(100vw - 40px));
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+#npc-dialogue.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; cursor: pointer; }
+#npc-dialogue .dlg-box {
+  position: relative;
+  background: var(--ink);
+  color: #fff;
+  border-radius: 18px;
+  padding: 26px 28px 20px;
+  box-shadow: 0 18px 50px rgba(20,28,45,0.34);
+  font-family: 'Pretendard', sans-serif;
+}
+#npc-dialogue .dlg-name {
+  position: absolute; top: -14px; left: 22px;
+  background: var(--accent); color: #fff;
+  font-weight: 700; font-size: 14px;
+  padding: 5px 16px; border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(255,91,53,0.4);
+}
+#npc-dialogue .dlg-text {
+  margin: 4px 0 0;
+  font-size: 1.12rem; line-height: 1.6; font-weight: 500;
+  min-height: 1.6em;
+  letter-spacing: -0.01em;
+}
+/* 타이핑 커서 */
+#npc-dialogue.show .dlg-text::after {
+  content: '▋';
+  margin-left: 2px;
+  color: var(--accent);
+  animation: dlg-blink 0.9s steps(1) infinite;
+}
+@keyframes dlg-blink { 50% { opacity: 0; } }
+#npc-dialogue .dlg-hint {
+  display: flex; align-items: center; justify-content: flex-end; gap: 8px;
+  margin-top: 14px;
+  font-family: 'Space Mono', monospace;
+  font-size: 11px; letter-spacing: 0.08em;
+  color: rgba(255,255,255,0.5);
+}
+#npc-dialogue .dlg-key {
+  font-weight: 700; color: #fff;
+  background: rgba(255,255,255,0.14);
+  border-radius: 7px; padding: 2px 8px;
+}
+@media (max-width: 560px) {
+  #npc-dialogue { bottom: 96px; }
+  #npc-dialogue .dlg-text { font-size: 1rem; }
+}
+
+/* ── content overlay / panels — 고서(古書) 모드 ── */
 #overlay {
   position: fixed;
   inset: 0;
   z-index: 50;
   display: none;
-  align-items: stretch;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  perspective: 1800px; /* 패널 펼침(rotateY)용 원근 */
 }
 #overlay.open { display: flex; }
 #overlay .scrim {
   position: absolute; inset: 0;
-  background: rgba(18,22,30,0.38);
-  backdrop-filter: blur(3px);
+  /* backdrop-filter 는 매 프레임 렌더되는 WebGL 캔버스를 계속 재블러링해
+     스크롤 랙을 유발 — 비네트만으로 충분히 시선 집중됨 */
+  background:
+    radial-gradient(90% 90% at 50% 50%, rgba(28,20,8,0.40) 0%, rgba(15,10,4,0.72) 100%);
   opacity: 0;
   transition: opacity 0.4s ease;
 }
 #overlay.open .scrim { opacity: 1; }
 
 .panel {
+  /* 패널 내부 전체를 양피지 팔레트로 재정의 */
+  --bg:      #efe3c3;
+  --surface: #f6ecd2;
+  --ink:     #3b2c18;
+  --muted:   #6f5b3a;
+  --faint:   #97815a;
+  --line:    #d9c69a;
+  --accent:  #8b3a1d;   /* 바랜 주서(朱書) */
+  --accent2: #5b4a8a;
+
   position: relative;
-  width: min(680px, 100%);
-  height: 100%;
-  background: var(--bg);
-  box-shadow: -30px 0 80px rgba(20,28,45,0.25);
-  transform: translateX(40px);
+  width: min(1020px, 100%);
+  height: min(88vh, 920px);
+  border-radius: 10px;
+  overflow: hidden;
+  background:
+    /* 세월의 얼룩 */
+    radial-gradient(46% 30% at 12% 6%,  rgba(146,108,48,0.14) 0%, transparent 70%),
+    radial-gradient(34% 26% at 88% 14%, rgba(146,108,48,0.10) 0%, transparent 70%),
+    radial-gradient(50% 36% at 80% 92%, rgba(120,84,32,0.16) 0%, transparent 70%),
+    radial-gradient(30% 22% at 8% 88%,  rgba(146,108,48,0.12) 0%, transparent 70%),
+    /* 양피지 바탕 */
+    linear-gradient(160deg, #f4e9cb 0%, #ecdfba 48%, #e4d4a8 100%);
+  border: 1px solid #6e542f;
+  outline: 1px solid rgba(110,84,47,0.55); /* 안쪽 장식 괘선 */
+  outline-offset: -9px;
+  box-shadow:
+    0 40px 90px rgba(10,6,0,0.55),
+    0 0 70px rgba(255,184,90,0.18),          /* 은은한 마법빛 */
+    inset 0 0 60px rgba(110,76,28,0.18),     /* 가장자리 그을림 */
+    inset 0 0 6px rgba(255,248,220,0.6);
   opacity: 0;
-  transition: transform 0.5s cubic-bezier(0.16,1,0.3,1), opacity 0.4s ease;
+  transform-origin: 0% 50%;   /* 왼쪽 모서리 = 책등 */
+  backface-visibility: hidden;
   display: flex; flex-direction: column;
 }
-#overlay.open .panel { transform: none; opacity: 1; }
+/* 책등 그림자 — 페이지가 왼쪽으로 말려 들어가는 느낌 */
+.panel::before {
+  content: '';
+  position: absolute; inset: 0;
+  z-index: 1; pointer-events: none;
+  background: linear-gradient(90deg, rgba(70,46,14,0.22) 0%, rgba(70,46,14,0.06) 26px, transparent 64px);
+}
+/* 마법서 펼침 — 책등 축 회전 + 솟아오름 + 빛 번짐 */
+#overlay.open .panel {
+  opacity: 1;
+  animation: panel-unfold 0.9s cubic-bezier(0.22, 1.1, 0.32, 1) both;
+}
+@keyframes panel-unfold {
+  0%   { transform: rotateY(-78deg) scale(0.92) translateY(26px); opacity: 0; filter: brightness(0.72) saturate(0.85); }
+  40%  { opacity: 1; }
+  68%  { transform: rotateY(7deg) scale(1.015); filter: brightness(1.1); box-shadow: 0 40px 90px rgba(10,6,0,0.55), 0 0 110px rgba(255,196,100,0.4), inset 0 0 60px rgba(110,76,28,0.18); }
+  100% { transform: none; filter: none; }
+}
+/* 펼쳐질 때 양피지 위를 스치는 따스한 빛 */
+.panel::after {
+  content: '';
+  position: absolute; inset: 0;
+  z-index: 5; pointer-events: none;
+  background: linear-gradient(105deg,
+    transparent 25%,
+    rgba(86,58,20,0.16) 48%,
+    rgba(255,228,150,0.45) 60%,
+    transparent 80%);
+  opacity: 0;
+}
+#overlay.open .panel::after { animation: panel-sheen 0.9s ease-out both; }
+@keyframes panel-sheen {
+  0%   { opacity: 0.9; transform: translateX(-45%); }
+  100% { opacity: 0;   transform: translateX(55%); }
+}
+/* 퀘스트 글귀처럼 내용이 순서대로 떠오르기 */
+#overlay.open .panel-body > * { animation: panel-rise 0.5s cubic-bezier(0.16,1,0.3,1) both; }
+#overlay.open .panel-body > *:nth-child(1) { animation-delay: 0.32s; }
+#overlay.open .panel-body > *:nth-child(2) { animation-delay: 0.39s; }
+#overlay.open .panel-body > *:nth-child(3) { animation-delay: 0.46s; }
+#overlay.open .panel-body > *:nth-child(4) { animation-delay: 0.53s; }
+#overlay.open .panel-body > *:nth-child(5) { animation-delay: 0.60s; }
+#overlay.open .panel-body > *:nth-child(6) { animation-delay: 0.67s; }
+#overlay.open .panel-body > *:nth-child(7) { animation-delay: 0.74s; }
+#overlay.open .panel-body > *:nth-child(n+8) { animation-delay: 0.8s; }
+@keyframes panel-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+/* 모션 민감 사용자는 펼침 생략 */
+@media (prefers-reduced-motion: reduce) {
+  #overlay.open .panel,
+  #overlay.open .panel::after,
+  #overlay.open .panel-body > * { animation: none; opacity: 1; transform: none; }
+}
 
 .panel-head {
   position: sticky; top: 0; z-index: 2;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 28px;
-  background: rgba(238,241,244,0.85);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid var(--line);
+  padding: 22px 36px;
+  /* 불투명 양피지 — backdrop blur 는 스크롤마다 재계산되어 랙 유발 */
+  background: linear-gradient(180deg, #f2e6c6 0%, #eee0bc 100%);
+  border-bottom: 1px double var(--line);
+  box-shadow: 0 1px 0 rgba(110,84,47,0.25);
 }
 .panel-eyebrow {
   font-family: 'Space Mono', monospace;
@@ -245,39 +389,74 @@ body {
   display: inline-flex; align-items: center; gap: 8px;
   font-family: 'Space Mono', monospace; font-size: 11px; letter-spacing: 0.1em;
   color: var(--muted);
-  background: var(--surface);
-  border: 1px solid var(--line);
+  background: rgba(246,236,210,0.7);
+  border: 1px solid rgba(110,84,47,0.5);
   border-radius: 999px;
   padding: 8px 14px;
   cursor: pointer;
-  transition: color 0.2s, border-color 0.2s, transform 0.2s;
+  box-shadow: inset 0 0 4px rgba(255,248,220,0.8);
+  transition: color 0.2s, border-color 0.2s, transform 0.2s, background 0.2s;
 }
-.panel-close:hover { color: var(--ink); border-color: var(--ink); transform: translateY(-1px); }
+.panel-close:hover {
+  color: #fff8e6; background: var(--accent);
+  border-color: var(--accent); transform: translateY(-1px);
+}
 
 .panel-body {
   flex: 1;
   overflow-y: auto;
-  padding: 36px 40px 80px;
+  padding: 38px 56px 70px;
   scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  transform: translateZ(0); /* 스크롤 영역을 별도 GPU 레이어로 분리 */
 }
 @media (max-width: 560px) {
-  .panel-body { padding: 28px 22px 80px; }
+  #overlay { padding: 10px; }
+  .panel { height: min(92vh, 880px); }
+  .panel-body { padding: 28px 24px 70px; }
   .panel-head { padding: 18px 22px; }
 }
 
-/* panel typography */
+/* panel typography — 고서 활자 */
 .panel h1.title {
-  font-family: 'Poppins', 'Pretendard', sans-serif;
+  font-family: 'Noto Serif KR', 'Pretendard', serif;
   font-weight: 700;
-  font-size: clamp(2rem, 6vw, 3.1rem);
-  line-height: 1.04;
-  letter-spacing: -0.02em;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.14;
+  letter-spacing: -0.01em;
   margin: 6px 0 0;
+  text-shadow: 0 1px 0 rgba(255,248,220,0.6);
+}
+.panel .tl h4,
+.panel .proj .meta h3 {
+  font-family: 'Noto Serif KR', 'Pretendard', serif;
+}
+/* 고서 괘선 — 가운데 장식 마름모 */
+.panel hr.rule {
+  position: relative;
+  overflow: visible;
+  border-top: 1px solid rgba(110,84,47,0.45);
+}
+.panel hr.rule::after {
+  content: '◆';
+  position: absolute; left: 50%; top: -0.62em;
+  transform: translateX(-50%);
+  font-size: 9px; color: rgba(139,58,29,0.7);
+  background: var(--bg);
+  padding: 0 10px;
+}
+/* 스크롤바도 양피지 톤으로 */
+.panel-body::-webkit-scrollbar { width: 10px; }
+.panel-body::-webkit-scrollbar-track { background: transparent; }
+.panel-body::-webkit-scrollbar-thumb {
+  background: rgba(110,84,47,0.35);
+  border-radius: 999px;
+  border: 2px solid #ecdfba;
 }
 .panel .lead {
   margin-top: 18px;
   font-size: 1.06rem; line-height: 1.7; color: var(--muted);
-  max-width: 46ch;
+  max-width: 62ch;
 }
 .panel .kicker {
   font-family: 'Space Mono', monospace;

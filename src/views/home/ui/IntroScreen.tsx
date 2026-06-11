@@ -8,7 +8,7 @@ export default function IntroScreen() {
           <br />
           오신 걸 환영해요
         </h1>
-        <p>작은 섬을 걸어다니며 가람을 만나고, 스튜디오와 방명록을 둘러보세요.</p>
+        <p>작은 섬을 걸어다니며 가람을 만나고, 작업 &amp; 경력과 방명록을 둘러보세요.</p>
         <div className="keys">
           <span className="item">
             <kbd>W</kbd>
