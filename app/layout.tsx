@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import "./globals.css";
+import "../src/shared/styles/globals.css";
 
 export const metadata: Metadata = {
-  title: "가람의 섬 — 탐험형 포트폴리오",
+  title: "MOS 개인 사이트",
   description: "WASD로 걸어다니며 NPC·건물에 다가가면 콘텐츠가 열리는 탐험형 포트폴리오.",
 };
 
