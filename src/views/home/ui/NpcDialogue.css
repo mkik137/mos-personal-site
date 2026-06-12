@@ -20,10 +20,10 @@
 }
 #npc-dialogue .dlg-name {
   position: absolute; top: -14px; left: 22px;
-  background: var(--accent); color: #fff;
+  background: var(--dlg-accent, var(--accent)); color: #fff;
   font-weight: 700; font-size: 14px;
   padding: 5px 16px; border-radius: 999px;
-  box-shadow: 0 6px 18px rgba(255,91,53,0.4);
+  box-shadow: 0 6px 18px color-mix(in srgb, var(--dlg-accent, var(--accent)) 40%, transparent);
 }
 #npc-dialogue .dlg-text {
   margin: 4px 0 0;
@@ -35,10 +35,33 @@
 #npc-dialogue.show .dlg-text::after {
   content: '▋';
   margin-left: 2px;
-  color: var(--accent);
+  color: var(--dlg-accent, var(--accent));
   animation: dlg-blink 0.9s steps(1) infinite;
 }
 @keyframes dlg-blink { 50% { opacity: 0; } }
+/* 선택지 (예/아니오) — choosing 상태에서만 표시 */
+#npc-dialogue .dlg-choices { display: none; gap: 10px; margin-top: 16px; }
+#npc-dialogue.choosing .dlg-choices { display: flex; }
+#npc-dialogue.choosing .dlg-hint { visibility: hidden; }
+#npc-dialogue .dlg-choice {
+  flex: 1;
+  background: rgba(255,255,255,0.08);
+  border: 1.5px solid rgba(255,255,255,0.22);
+  border-radius: 12px;
+  color: #fff;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px; font-weight: 600;
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, transform 0.15s;
+}
+#npc-dialogue .dlg-choice:hover { background: rgba(255,255,255,0.16); }
+#npc-dialogue .dlg-choice.sel {
+  background: var(--dlg-accent, var(--accent));
+  border-color: var(--dlg-accent, var(--accent));
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--dlg-accent, var(--accent)) 40%, transparent);
+}
 #npc-dialogue .dlg-hint {
   display: flex; align-items: center; justify-content: flex-end; gap: 8px;
   margin-top: 14px;

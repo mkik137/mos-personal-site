@@ -50,3 +50,4 @@ body.touch #hud-help { display: none; }
 #hud-dir .pin { width: 7px; height: 7px; border-radius: 999px; background: var(--poi-about); box-shadow: 0 0 7px var(--poi-about); }
 #hud-dir .pin.b { background: var(--poi-work); box-shadow: 0 0 7px var(--poi-work); }
 #hud-dir .pin.g { background: var(--poi-guestbook); box-shadow: 0 0 7px var(--poi-guestbook); }
+#hud-dir .pin.h { background: var(--poi-garam-house); box-shadow: 0 0 7px var(--poi-garam-house); }

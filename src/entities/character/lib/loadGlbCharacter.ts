@@ -4,15 +4,15 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 const TARGET_HEIGHT = 2.0; // 기존 절차적 캐릭터·GLB 아바타와 동일한 키
 
-// public/glb/usercharacter 안의 Mixamo 캐릭터 (FBX → GLB 변환본).
+// public/glb/character/player 안의 Mixamo 캐릭터 (FBX → GLB 변환본).
 //  - run    : 베이스 메시(스킨 + 스켈레톤)이자 달리기 클립
 //  - jump   : 점프 클립만 사용
 //  - back   : 뒤로 달리기 클립만 사용
 //  - stop   : 멈추는(Run To Stop) 클립만 사용
-const BASE_URL = '/glb/usercharacter/Fast Run.glb';
-const JUMP_URL = '/glb/usercharacter/Jump.glb';
-const BACK_URL = '/glb/usercharacter/Running Backward.glb';
-const STOP_URL = '/glb/usercharacter/Run To Stop.glb';
+const BASE_URL = '/glb/character/player/Fast Run.glb';
+const JUMP_URL = '/glb/character/player/Jump.glb';
+const BACK_URL = '/glb/character/player/Running Backward.glb';
+const STOP_URL = '/glb/character/player/Run To Stop.glb';
 
 // Mixamo 클립은 Hips 본에 루트 위치(translation) 트랙을 담아 캐릭터를
 // 통째로 이동·상승시킨다. 게임은 자체 물리(player.position, jumpY)로

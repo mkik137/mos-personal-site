@@ -6,6 +6,10 @@ export default function NpcDialogue() {
       <div className="dlg-box">
         <span className="dlg-name">가람</span>
         <p className="dlg-text" />
+        <div className="dlg-choices">
+          <button type="button" className="dlg-choice" data-choice="0" />
+          <button type="button" className="dlg-choice" data-choice="1" />
+        </div>
         <span className="dlg-hint">
           계속하기 <span className="dlg-key">E</span>
         </span>

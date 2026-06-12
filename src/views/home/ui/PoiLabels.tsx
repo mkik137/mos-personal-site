@@ -21,6 +21,12 @@ export default function PoiLabels() {
         </span>
         <span className="tail" />
       </div>
+      <div className="poi-label" data-poi="garam-house">
+        <span className="chip">
+          <span className="dot" /> 가람이의 집 <span className="sub">HOME</span>
+        </span>
+        <span className="tail" />
+      </div>
     </div>
   );
 }

@@ -61,7 +61,7 @@ export async function buildIsland({ scene }) {
     }
   }
   // anchorTop: 타일 윗면을 지면에 맞추고 두께는 지면 아래로 → 캐릭터를 가리지 않음
-  await addTiles(scene, { url: '/glb/nature/Floor Tile.glb', tile: FLOOR_TILE, cells: floorCells, y: 0.05, anchorTop: true });
+  await addTiles(scene, { url: '/glb/tile/Floor Tile.glb', tile: FLOOR_TILE, cells: floorCells, y: 0.05, anchorTop: true });
 
   // ── 건물로 이어지는 길: Cobblestone (2칸 폭, 곡선 따라감) ──
   const cobbleCells = [];
@@ -80,5 +80,5 @@ export async function buildIsland({ scene }) {
     }
   }
   // 코블은 잔디(윗면 0.05)보다 살짝 위(0.1)에 깔아, 길 아래로 채운 잔디가 비치지 않게.
-  await addTiles(scene, { url: '/glb/nature/Cobblestone tile.glb', tile: COBBLE_TILE, cells: cobbleCells, y: 0.1, anchorTop: true });
+  await addTiles(scene, { url: '/glb/tile/Cobblestone tile.glb', tile: COBBLE_TILE, cells: cobbleCells, y: 0.1, anchorTop: true });
 }

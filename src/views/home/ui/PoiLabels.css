@@ -13,9 +13,10 @@
   transition: opacity 0.3s ease;
   white-space: nowrap;
 }
-.poi-label[data-poi="about"]     { --poi: var(--poi-about); }
-.poi-label[data-poi="work"]      { --poi: var(--poi-work); }
-.poi-label[data-poi="guestbook"] { --poi: var(--poi-guestbook); }
+.poi-label[data-poi="about"]       { --poi: var(--poi-about); }
+.poi-label[data-poi="work"]        { --poi: var(--poi-work); }
+.poi-label[data-poi="guestbook"]   { --poi: var(--poi-guestbook); }
+.poi-label[data-poi="garam-house"] { --poi: var(--poi-garam-house); }
 .poi-label .chip {
   display: inline-flex;
   align-items: center;

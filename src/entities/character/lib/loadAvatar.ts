@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
-const AVATAR_URL = '/glb/npc/avatar_1781076713172.glb';
+const AVATAR_URL = '/glb/character/npc/avatar_1781076713172.glb';
 const TARGET_HEIGHT = 2.0;   // 기존 절차적 캐릭터와 동일한 키
 
 // GLB 아바타를 로드해 게임 월드 좌표/크기에 맞춰 정규화한 wrapper Group을 반환한다.
@@ -54,8 +54,9 @@ export function loadAvatar(
 
         const wrapper = new THREE.Group();
         wrapper.add(model);
-        // 본 절차 애니메이션은 적용하지 않음 → animateLimbs가 early-return
-        wrapper.userData = {};
+        // 본 절차 애니메이션(animateLimbs)은 적용하지 않음 — leftArm 키가 없어 early-return.
+        // 클립 내장 GLB(배회 NPC 등)가 AnimationMixer 를 붙일 수 있게 클립과 내부 모델을 노출.
+        wrapper.userData = { animations: gltf.animations, model };
         resolve(wrapper);
       },
       undefined,

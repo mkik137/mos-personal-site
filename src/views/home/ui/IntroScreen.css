@@ -35,3 +35,5 @@
 #intro .start:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(255,91,53,0.5); }
 #intro .start .arrow { transition: transform 0.2s; }
 #intro .start:hover .arrow { transform: translateX(3px); }
+#intro .credits { margin-top: 22px; font-family: 'Space Mono', monospace; font-size: 10px; color: #8a94a6; }
+#intro .credits a { color: inherit; text-decoration: underline; }

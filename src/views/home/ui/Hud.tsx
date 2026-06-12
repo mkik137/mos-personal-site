@@ -38,6 +38,9 @@ export default function Hud() {
         <div className="row">
           <span className="pin g" /> 방명록 — 흔적 남기기
         </div>
+        <div className="row">
+          <span className="pin h" /> 가람이의 집 — 방 구경하기
+        </div>
       </div>
     </>
   );

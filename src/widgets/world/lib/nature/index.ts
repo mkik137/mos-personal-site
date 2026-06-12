@@ -8,19 +8,30 @@ import { loadGlbProp } from '../helpers/loadGlbProp';
 import { addInstanced } from '../helpers/tileField';
 
 // 여러 종류의 나무를 섞어 다양하게 표현 (footprint 폭 기준으로 정규화 → 모델별 높이 자연스럽게 다름)
+// Big Tree(~35k tris, 씬 삼각형의 58% 차지·렉 주범)와 Tree2(잎 텍스처 흰 배경이
+// 불투명 렌더링되어 하얀 나무로 보임)는 제외.
 const TREE_MODELS = [
-  '/glb/nature/Big Tree.glb',
-  '/glb/nature/Pine.glb',
-  '/glb/nature/Tree.glb',
-  '/glb/nature/Tree2.glb',
+  { url: '/glb/nature/Pine.glb', weight: 1 },
+  { url: '/glb/nature/Tree.glb', weight: 1 },
 ];
-const BUSH_URL   = '/glb/nature/Bush with Flowers.glb';
-const ROCK_URL   = '/glb/nature/Rock.glb';
-const CROP_URL   = '/glb/nature/Crops.glb';
-const COBBLE_URL = '/glb/nature/Cobblestone tile.glb';
+const TREE_WEIGHT_SUM = TREE_MODELS.reduce((sum, m) => sum + m.weight, 0);
+function pickTreeModel(): number {
+  let r = Math.random() * TREE_WEIGHT_SUM;
+  for (let i = 0; i < TREE_MODELS.length; i++) {
+    r -= TREE_MODELS[i].weight;
+    if (r < 0) return i;
+  }
+  return TREE_MODELS.length - 1;
+}
+const BUSH_URL     = '/glb/nature/Bush with Flowers.glb';
+const ROCK_URL     = '/glb/nature/Rock.glb';
+const CROP_URL     = '/glb/nature/Crops.glb';
+const COBBLE_URL   = '/glb/tile/Cobblestone tile.glb';
+const DUMPSTER_URL = '/glb/prop/Dumpster.glb';
+const BOX_URL      = '/glb/prop/Box.glb';
 
 export async function buildNature(ctx): Promise<void> {
-  const { scene, obstacles } = ctx;
+  const { scene, obstacles, pois } = ctx;
 
   // ── 장식용 건물 (병렬 로드, 좌표는 layout 에 정의) ──
   await Promise.all(
@@ -44,7 +55,7 @@ export async function buildNature(ctx): Promise<void> {
   const treeAvoid = avoidNow();
   const RMIN = 17;                 // 아케이드 링(반경 13)+여유 바깥부터 → 아케이드 침범 방지
   const RMAX = ISLAND_R - 2.5;     // 섬 가장자리 직전까지
-  const STEP = 4.8;                // 나무 간격 — 키울수록 그루 수↓ (렉 완화)
+  const STEP = 4.0;                // 나무 간격 — 키울수록 그루 수↓ (Big Tree 비중을 낮춰 밀도를 올림)
   const CANOPY = 2.2;              // 나무 캐노피 여유 — 길/게임기 가장자리를 안 덮게
   const TREE_WIDTH = 3.4;          // footprint 가로폭(byWidth) — 종류별 높이는 자연스럽게 다름
 
@@ -58,14 +69,50 @@ export async function buildNature(ctx): Promise<void> {
       if (r < RMIN || r > RMAX) continue;
       // 회피 구역(길·게임기·건물) 가장자리에서 캐노피 반경만큼 더 떨어뜨림
       if (treeAvoid.some((a) => Math.hypot(x - a.x, z - a.z) < (a.r || 0) + CANOPY)) continue;
-      const mi = Math.floor(Math.random() * TREE_MODELS.length);
+      const mi = pickTreeModel();
       cellsByModel[mi].push({ x, z, ry: Math.random() * Math.PI * 2, s: 0.85 + Math.random() * 0.4 });
       obstacles.push({ x, z, r: 1.5 }); // 캐노피 덮는 충돌 → 관통 방지(빽빽해서 길 외엔 막힘)
     }
   }
   // castShadow=false: 나무 그림자 패스가 렉의 주원인 → 끄면 큰 성능 향상 (그림자는 계속 받음)
   for (let mi = 0; mi < TREE_MODELS.length; mi++) {
-    await addInstanced(scene, { url: TREE_MODELS[mi], baseSize: TREE_WIDTH, byWidth: true, cells: cellsByModel[mi], castShadow: false });
+    await addInstanced(scene, { url: TREE_MODELS[mi].url, baseSize: TREE_WIDTH, byWidth: true, cells: cellsByModel[mi], castShadow: false });
+  }
+
+  // ── 덤스터 — 중앙 광장 가장자리 (길 입구들 사이 빈 각도, 스폰(0,0,3.5)과 안 겹침) ──
+  const dump = await loadGlbProp(DUMPSTER_URL, 2.4, true);
+  const dumpX = 3.2, dumpZ = 6.8;
+  dump.position.set(dumpX, 0.05, dumpZ); // 광장 바닥 타일 윗면(0.05)에 맞춤
+  dump.rotation.y = Math.atan2(-dumpX, -dumpZ); // 광장 중심을 바라보게
+  scene.add(dump);
+  obstacles.push({ x: dumpX, z: dumpZ, r: 1.4 });
+  // 박스 버리기 퀘스트의 목적지 — 상호작용은 world.ts(useDumpster)가 처리.
+  pois.push({
+    id: 'dumpster', type: 'dumpster',
+    x: dumpX, z: dumpZ, r: 3.0,
+    object: dump,
+    prompt: '쓰레기통 사용하기',
+  });
+
+  // ── 박스 — 게임기 링(13)과 숲(17) 사이 개방 지대에 랜덤 3개 ──
+  // 이 지대는 나무가 없고 항상 걸어서 닿을 수 있음. avoid 에 나무 obstacle 도 포함되어
+  // 경계 부근에서도 캐노피와 안 겹침.
+  const boxSpots = scatter({ count: 3, rMin: 12.5, rMax: 16, sep: 1.2, avoid: avoidNow() });
+  let boxId = 0;
+  for (const p of boxSpots) {
+    const box = await loadGlbProp(BOX_URL, 0.9 + Math.random() * 0.4);
+    box.position.set(p.x, 0, p.z);
+    box.rotation.y = Math.random() * Math.PI * 2;
+    scene.add(box);
+    const ob = { x: p.x, z: p.z, r: 0.8 };
+    obstacles.push(ob);
+    // 줍기 퀘스트 대상 — world.ts(pickupBox)가 줍는 순간 poi/obstacle/씬에서 제거.
+    pois.push({
+      id: `box-${boxId++}`, type: 'box',
+      x: p.x, z: p.z, r: 2.4,
+      object: box, obstacle: ob,
+      prompt: '박스 줍기',
+    });
   }
 
   // ── 밭(Crops) — 외곽 농가 분위기, 통행 막음 ──

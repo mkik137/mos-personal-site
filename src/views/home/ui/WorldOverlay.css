@@ -38,13 +38,21 @@
   width: min(1020px, 100%);
   height: min(88vh, 920px);
   border-radius: 10px;
-  overflow: hidden;
+  /* overflow 는 열어둔다 — 두루마리 봉이 좌우로 돌출되어야 함 */
   background:
+    /* 종이 섬유 질감 — SVG feTurbulence 프랙탈 노이즈 (타일 반복) */
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0.32 0 0 0 0 0.23 0 0 0 0 0.09 0 0 0 0.10 0'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)'/%3E%3C/svg%3E"),
+    /* 위·아래 봉 밑 종이 말림 그림자 — 종이가 원통을 감고 도는 음영 */
+    linear-gradient(180deg, rgba(64,42,12,0.30) 0%, rgba(64,42,12,0) 100%) left 0 top 26px / 100% 30px no-repeat,
+    linear-gradient(0deg,   rgba(64,42,12,0.30) 0%, rgba(64,42,12,0) 100%) left 0 bottom 26px / 100% 30px no-repeat,
+    /* 두루마리 가로 접힘 자국 (아주 옅게) */
+    repeating-linear-gradient(180deg, transparent 0 86px, rgba(120,84,32,0.05) 86px 88px),
     /* 세월의 얼룩 */
     radial-gradient(46% 30% at 12% 6%,  rgba(146,108,48,0.14) 0%, transparent 70%),
     radial-gradient(34% 26% at 88% 14%, rgba(146,108,48,0.10) 0%, transparent 70%),
     radial-gradient(50% 36% at 80% 92%, rgba(120,84,32,0.16) 0%, transparent 70%),
     radial-gradient(30% 22% at 8% 88%,  rgba(146,108,48,0.12) 0%, transparent 70%),
+    radial-gradient(24% 14% at 38% 46%, rgba(146,108,48,0.08) 0%, transparent 70%),
     /* 양피지 바탕 */
     linear-gradient(160deg, #f4e9cb 0%, #ecdfba 48%, #e4d4a8 100%);
   border: 1px solid #6e542f;
@@ -53,47 +61,56 @@
   box-shadow:
     0 40px 90px rgba(10,6,0,0.55),
     0 0 70px rgba(255,184,90,0.18),          /* 은은한 마법빛 */
-    inset 0 0 60px rgba(110,76,28,0.18),     /* 가장자리 그을림 */
+    inset 0 0 80px rgba(110,76,28,0.22),     /* 가장자리 그을림 */
+    inset 0 0 14px rgba(96,64,20,0.20),
     inset 0 0 6px rgba(255,248,220,0.6);
   opacity: 0;
-  transform-origin: 0% 50%;   /* 왼쪽 모서리 = 책등 */
   backface-visibility: hidden;
   display: flex; flex-direction: column;
 }
-/* 책등 그림자 — 페이지가 왼쪽으로 말려 들어가는 느낌 */
-.panel::before {
-  content: '';
-  position: absolute; inset: 0;
-  z-index: 1; pointer-events: none;
-  background: linear-gradient(90deg, rgba(70,46,14,0.22) 0%, rgba(70,46,14,0.06) 26px, transparent 64px);
-}
-/* 마법서 펼침 — 책등 축 회전 + 솟아오름 + 빛 번짐 */
-#overlay.open .panel {
-  opacity: 1;
-  animation: panel-unfold 0.9s cubic-bezier(0.22, 1.1, 0.32, 1) both;
-}
-@keyframes panel-unfold {
-  0%   { transform: rotateY(-78deg) scale(0.92) translateY(26px); opacity: 0; filter: brightness(0.72) saturate(0.85); }
-  40%  { opacity: 1; }
-  68%  { transform: rotateY(7deg) scale(1.015); filter: brightness(1.1); box-shadow: 0 40px 90px rgba(10,6,0,0.55), 0 0 110px rgba(255,196,100,0.4), inset 0 0 60px rgba(110,76,28,0.18); }
-  100% { transform: none; filter: none; }
-}
-/* 펼쳐질 때 양피지 위를 스치는 따스한 빛 */
+/* 두루마리 축(나무 봉) — 패널 좌우로 돌출된 가로 봉.
+   끝 마개(어두운 단) + 금장 링 + 원통 하이라이트로 깎은 나무 느낌.
+   스크롤하면 내용이 봉 밑으로 말려 들어간다. */
+.panel::before,
 .panel::after {
   content: '';
-  position: absolute; inset: 0;
-  z-index: 5; pointer-events: none;
-  background: linear-gradient(105deg,
-    transparent 25%,
-    rgba(86,58,20,0.16) 48%,
-    rgba(255,228,150,0.45) 60%,
-    transparent 80%);
-  opacity: 0;
+  position: absolute; left: -26px; right: -26px; height: 30px;
+  z-index: 6; pointer-events: none;
+  border-radius: 999px;
+  background:
+    /* 끝 마개(양 끝 어두운 단) */
+    linear-gradient(90deg,
+      rgba(46,29,10,0.92) 0 20px, transparent 20px calc(100% - 20px),
+      rgba(46,29,10,0.92) calc(100% - 20px)),
+    /* 금장 링 */
+    linear-gradient(90deg,
+      transparent 20px, rgba(214,168,94,0.95) 20px 24px,
+      transparent 24px calc(100% - 24px),
+      rgba(214,168,94,0.95) calc(100% - 24px) calc(100% - 20px),
+      transparent calc(100% - 20px)),
+    /* 원통 하이라이트 */
+    linear-gradient(180deg, #8a6134 0%, #c79e62 26%, #9a6f3a 56%, #553817 100%);
+  box-shadow:
+    0 6px 14px rgba(20,12,2,0.45),
+    inset 0 0 0 1px rgba(60,38,12,0.65),
+    inset 0 2px 3px rgba(255,228,170,0.35),
+    inset 0 -3px 5px rgba(30,18,5,0.4);
 }
-#overlay.open .panel::after { animation: panel-sheen 0.9s ease-out both; }
-@keyframes panel-sheen {
-  0%   { opacity: 0.9; transform: translateX(-45%); }
-  100% { opacity: 0;   transform: translateX(55%); }
+.panel::before { top: 0; }
+.panel::after  { bottom: 0; }
+/* 두루마리 펼침 — 위 봉에서 아래로 풀려 내려오는 언롤
+   (음수 inset 으로 돌출된 봉까지 클립 영역에 포함) */
+#overlay.open .panel {
+  opacity: 1;
+  animation: panel-unroll 0.85s cubic-bezier(0.22, 1.05, 0.32, 1) both;
+}
+@keyframes panel-unroll {
+  0%   { clip-path: inset(-40px -44px 93% -44px round 26px); transform: translateY(14px); opacity: 0; }
+  25%  { opacity: 1; }
+  100% { clip-path: inset(-40px -44px -40px -44px round 26px); transform: none; }
+}
+@media (max-width: 1120px) {
+  .panel::before, .panel::after { left: -10px; right: -10px; }
 }
 /* 퀘스트 글귀처럼 내용이 순서대로 떠오르기 */
 #overlay.open .panel-body > * { animation: panel-rise 0.5s cubic-bezier(0.16,1,0.3,1) both; }
@@ -119,6 +136,7 @@
 .panel-head {
   position: sticky; top: 0; z-index: 2;
   display: flex; align-items: center; justify-content: space-between;
+  margin-top: 26px; /* 위 두루마리 봉 아래에서 시작 */
   padding: 22px 36px;
   /* 불투명 양피지 — backdrop blur 는 스크롤마다 재계산되어 랙 유발 */
   background: linear-gradient(180deg, #f2e6c6 0%, #eee0bc 100%);
@@ -198,6 +216,25 @@
   background: var(--bg);
   padding: 0 10px;
 }
+/* 문서 끝 밀랍 인장 — 본문을 끝까지 내리면 찍혀 있는 붉은 봉인 */
+.panel-body::after {
+  content: '印';
+  display: grid; place-items: center;
+  width: 62px; height: 62px;
+  margin: 48px auto 6px;
+  border-radius: 50%;
+  font-family: 'Noto Serif KR', serif;
+  font-size: 22px; font-weight: 700;
+  color: rgba(255,226,205,0.88);
+  text-shadow: 0 1px 2px rgba(60,8,2,0.6);
+  background: radial-gradient(circle at 34% 28%, #c44331 0%, #97271a 55%, #6f160d 100%);
+  box-shadow:
+    inset 0 2px 5px rgba(255,160,130,0.45),
+    inset 0 -3px 7px rgba(50,6,2,0.55),
+    0 3px 10px rgba(70,25,8,0.35);
+  transform: rotate(-6deg);
+}
+
 /* 스크롤바도 양피지 톤으로 */
 .panel-body::-webkit-scrollbar { width: 10px; }
 .panel-body::-webkit-scrollbar-track { background: transparent; }

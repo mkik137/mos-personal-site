@@ -15,13 +15,15 @@ export async function buildPOIs(ctx) {
   ]);
 
   // ── NPC (가람) — GLB 아바타 ──
+  // 길 끝(-19.5)에서 두 걸음 물러난 잔디 위 — 돌길 타일(y 0.1)에 발이 묻히지 않고,
+  // 개발자 코너의 칠판(-2.3,-21.3)과 책상(2.6,-21.8) 사이에 선다.
   const npc = new THREE.Object3D();
-  npc.position.set(0, 0, -13 * S);
+  npc.position.set(0, 0, -21.5);
   npc.add(npcModel);
   scene.add(npc);
   _registerPoi(pois, {
     id: 'about', type: 'npc',
-    x: 0, z: -13 * S, r: 3.4,
+    x: 0, z: -21.5, r: 3.4,
     object: npc,
     prompt: '가람과 대화하기',
     labelTitle: '가람', labelSub: 'SAY HELLO',
