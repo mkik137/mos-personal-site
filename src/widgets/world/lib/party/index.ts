@@ -8,6 +8,7 @@
 import * as THREE from 'three';
 import { loadGlbProp } from '../helpers/loadGlbProp';
 import { addExitDoor } from '../helpers/exitDoor';
+import { addInteractMarker } from '../helpers/interactMarker';
 import { SPEAKER_COLORS } from '../dialogueLines';
 import { COL } from '../constants';
 
@@ -228,6 +229,7 @@ export async function buildParty(ctx): Promise<{ dome: THREE.Mesh }> {
   gift3.position.set(X - 1.25, 0, Z - 2.1);
   gift3.rotation.y = 1.1;
   scene.add(gift1, gift2, gift3);
+  addInteractMarker(scene, floaters, X, tableTop + 0.85, Z - 2.2); // 상호작용 표시 (E 키캡)
   pois.push({
     id: 'guestbook-desk', type: 'guestbook-desk',
     x: X, z: Z - 2.2, r: 2.6,
