@@ -1,12 +1,14 @@
 // @ts-nocheck
 // ─────────────────────────────────────────────
-//  plaza — 중앙 광장 소품
+//  plaza — 중앙 광장 + 들판 소품
 //  · 중앙: 물 흐르는 분수대 + 동서남북 벤치 4개 (전부 분수대를 바라봄)
-//  · 테두리: 6종 전부 다른 소품 — 7개 길 입구(약 -148/-90/-32/5/27/103/141°)와
+//  · 테두리: 도시 소품 — 7개 길 입구(약 -148/-90/-32/5/27/103/141°)와
 //    덤스터(65°)가 있는 각도는 비워둔다.
+//  · 길가 장식(가로등·꽃·표지판·배럴)은 ./pathDecor 에서.
 // ─────────────────────────────────────────────
 import * as THREE from 'three';
 import { loadGlbProp } from '../helpers/loadGlbProp';
+import { buildPathDecor } from './pathDecor';
 
 const FLOOR_Y = 0.05; // 광장 바닥 타일 윗면
 const deg = (d) => (d * Math.PI) / 180;
@@ -45,28 +47,31 @@ const FIELD_DECOR = [
   { url: '/glb/prop/Computer Room.glb', x: 0,    z: -27.5, ry: Math.PI,  size: 7.0,  byWidth: true,  obstacle: 3.6 },  // Bruno Oliveira CC-BY — 열린 정면이 광장 쪽
 ];
 
-const BENCH_RING_R = 4.3; // 분수대 둘레 벤치 반경
+const FOUNTAIN_W   = 6.4; // 분수대 footprint 폭 (기본 3.2 의 2배)
+const BENCH_RING_R = 5.4; // 분수대 둘레 벤치 반경 — 분수대(반경 ~3.2)에 안 가리게
 
 export async function buildPlaza(ctx): Promise<void> {
   const { scene, obstacles, floaters } = ctx;
 
   await Promise.all([
+    // ── 길가 장식 (가로등·꽃·표지판·배럴) ──
+    buildPathDecor(ctx),
     // ── 중앙 분수대 ──
     (async () => {
-      const fountain = await loadGlbProp(FOUNTAIN_URL, 3.2, true);
+      const fountain = await loadGlbProp(FOUNTAIN_URL, FOUNTAIN_W, true);
       fountain.position.set(0, FLOOR_Y, 0);
       scene.add(fountain);
-      obstacles.push({ x: 0, z: 0, r: 1.8 });
+      obstacles.push({ x: 0, z: 0, r: FOUNTAIN_W / 2 + 0.3 });
 
       // 물방울 보브 — 모델에 애니메이션이 없어서 ambient floaters 로 물 흐름 연출.
       const top = new THREE.Box3().setFromObject(fountain).max.y;
       const dropMat = new THREE.MeshStandardMaterial({ color: 0x9fdcf5, roughness: 0.2 });
       for (let i = 0; i < 4; i++) {
-        const drop = new THREE.Mesh(new THREE.SphereGeometry(0.085, 10, 8), dropMat);
+        const drop = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), dropMat);
         const a = (i / 4) * Math.PI * 2;
-        drop.position.set(Math.cos(a) * 0.55, top - 0.5, Math.sin(a) * 0.55);
+        drop.position.set(Math.cos(a) * 1.1, top - 1.0, Math.sin(a) * 1.1);
         scene.add(drop);
-        floaters.push({ mesh: drop, baseY: top - 0.5, amp: 0.28, phase: a * 1.7, speed: 2.6 + i * 0.3 });
+        floaters.push({ mesh: drop, baseY: top - 1.0, amp: 0.5, phase: a * 1.7, speed: 2.6 + i * 0.3 });
       }
     })(),
     // ── 분수대 둘레 벤치 — 동·서·남·북 하나씩, 분수대를 바라보게 ──

@@ -71,14 +71,6 @@ export function addClawMachine({ scene, obstacles, pulsers, floaters }, x, z, ro
   signFace.add(makeTextPlane('CATCH!', 1.5, 0.32, '#ff4d8d'));
   pulsers.push({ mat: signFace.material, base: 0xffffff, phase: x, lo: 0.7, hi: 1.0 });
 
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(1.25, 0.05, 8, 32),
-    new THREE.MeshBasicMaterial({ color: accent }),
-  );
-  ring.rotation.x = Math.PI / 2; ring.position.y = 0.05;
-  g.add(ring);
-  pulsers.push({ mat: ring.material, base: accent, phase: z });
-
   g.position.set(x, 0, z);
   g.rotation.y = rot;
   scene.add(g);

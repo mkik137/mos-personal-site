@@ -61,7 +61,8 @@ export async function buildIsland({ scene }) {
     }
   }
   // anchorTop: 타일 윗면을 지면에 맞추고 두께는 지면 아래로 → 캐릭터를 가리지 않음
-  await addTiles(scene, { url: '/glb/tile/Floor Tile.glb', tile: FLOOR_TILE, cells: floorCells, y: 0.05, anchorTop: true });
+  // 길과 같은 Cobblestone 으로 빈틈없이 포장 — 길에서 광장으로 자연스럽게 이어지는 돌바닥
+  await addTiles(scene, { url: '/glb/tile/Cobblestone tile.glb', tile: FLOOR_TILE, cells: floorCells, y: 0.05, rotateEach: true, anchorTop: true });
 
   // ── 건물로 이어지는 길: Cobblestone (2칸 폭, 곡선 따라감) ──
   const cobbleCells = [];

@@ -1,0 +1,53 @@
+/* ── 퀘스트 완료 배너 — 게임풍 중앙 연출 ───────── */
+#quest-banner {
+  position: fixed;
+  left: 50%; top: 34%;
+  transform: translate(-50%, -50%);
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0;
+  text-align: center;
+}
+#quest-banner.show {
+  animation: qb-pop 3.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes qb-pop {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.7); filter: blur(6px); }
+  10%  { opacity: 1; transform: translate(-50%, -50%) scale(1.06); filter: blur(0); }
+  16%  { transform: translate(-50%, -50%) scale(1); }
+  82%  { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -56%) scale(1.02); }
+}
+#quest-banner .qb-kicker {
+  font-family: 'Space Mono', monospace;
+  font-size: 12px; letter-spacing: 0.42em; text-transform: uppercase;
+  color: #ffd76a;
+  text-shadow: 0 0 12px rgba(255,180,60,0.8);
+}
+#quest-banner .qb-title {
+  margin-top: 8px;
+  font-family: 'Noto Serif KR', 'Pretendard', serif;
+  font-weight: 700;
+  font-size: clamp(2.2rem, 6vw, 3.4rem);
+  letter-spacing: 0.02em;
+  background: linear-gradient(180deg, #fff3c4 0%, #ffd76a 45%, #e09c2d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(110,60,10,0.55)) drop-shadow(0 0 22px rgba(255,190,80,0.55));
+}
+#quest-banner .qb-sub {
+  margin-top: 10px;
+  font-family: 'Pretendard', sans-serif;
+  font-size: 15px; font-weight: 600;
+  color: #fff6e0;
+  text-shadow: 0 1px 3px rgba(40,20,0,0.7), 0 0 14px rgba(255,180,60,0.4);
+}
+/* 좌우 장식 괘선 */
+#quest-banner .qb-sub::before,
+#quest-banner .qb-sub::after {
+  content: '─────';
+  margin: 0 12px;
+  color: rgba(255,215,106,0.7);
+  letter-spacing: -2px;
+}

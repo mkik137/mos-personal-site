@@ -2,6 +2,7 @@
 // ─────────────────────────────────────────────
 //  nature — GLB 자연물(소나무·꽃덤불·바위·밭·자갈) + 장식용 건물 배치
 // ─────────────────────────────────────────────
+import * as THREE from 'three';
 import { WALK_R, ISLAND_R } from '../constants';
 import { HOUSE_SPOTS, reservedZones, pathCorridors, scatter } from '../layout';
 import { loadGlbProp } from '../helpers/loadGlbProp';
@@ -28,10 +29,10 @@ const ROCK_URL     = '/glb/nature/Rock.glb';
 const CROP_URL     = '/glb/nature/Crops.glb';
 const COBBLE_URL   = '/glb/tile/Cobblestone tile.glb';
 const DUMPSTER_URL = '/glb/prop/Dumpster.glb';
-const BOX_URL      = '/glb/prop/Box.glb';
+const TRASH_URL    = '/glb/prop/Trash Bag.glb'; // J-Toastie — CC-BY 3.0 (크레딧 표기)
 
 export async function buildNature(ctx): Promise<void> {
-  const { scene, obstacles, pois } = ctx;
+  const { scene, obstacles, pois, pulsers } = ctx;
 
   // ── 장식용 건물 (병렬 로드, 좌표는 layout 에 정의) ──
   await Promise.all(
@@ -97,21 +98,31 @@ export async function buildNature(ctx): Promise<void> {
   // ── 박스 — 게임기 링(13)과 숲(17) 사이 개방 지대에 랜덤 3개 ──
   // 이 지대는 나무가 없고 항상 걸어서 닿을 수 있음. avoid 에 나무 obstacle 도 포함되어
   // 경계 부근에서도 캐노피와 안 겹침.
-  const boxSpots = scatter({ count: 3, rMin: 12.5, rMax: 16, sep: 1.2, avoid: avoidNow() });
+  const boxSpots = scatter({ count: 5, rMin: 12.5, rMax: 16, sep: 1.2, avoid: avoidNow() });
   let boxId = 0;
   for (const p of boxSpots) {
-    const box = await loadGlbProp(BOX_URL, 0.9 + Math.random() * 0.4);
-    box.position.set(p.x, 0, p.z);
-    box.rotation.y = Math.random() * Math.PI * 2;
-    scene.add(box);
-    const ob = { x: p.x, z: p.z, r: 0.8 };
+    const trash = await loadGlbProp(TRASH_URL, 0.6 + Math.random() * 0.25);
+    trash.position.set(p.x, 0, p.z);
+    trash.rotation.y = Math.random() * Math.PI * 2;
+    scene.add(trash);
+    const ob = { x: p.x, z: p.z, r: 0.6 };
     obstacles.push(ob);
-    // 줍기 퀘스트 대상 — world.ts(pickupBox)가 줍는 순간 poi/obstacle/씬에서 제거.
+    // 퀘스트 안내 링 — 게임기 네온 링과 같은 스타일(펄스). 수락 전엔 숨김 (world.ts 가 켬).
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(0.75, 0.05, 8, 28),
+      new THREE.MeshBasicMaterial({ color: 0xffb13c }),
+    );
+    ring.rotation.x = Math.PI / 2;
+    ring.position.set(p.x, 0.05, p.z);
+    ring.visible = false;
+    scene.add(ring);
+    pulsers.push({ mat: ring.material, base: 0xffb13c, phase: boxId * 0.8 });
+    // 줍기 퀘스트 대상 — world.ts(pickupBox)가 줍는 순간 poi/obstacle/링/씬에서 제거.
     pois.push({
       id: `box-${boxId++}`, type: 'box',
       x: p.x, z: p.z, r: 2.4,
-      object: box, obstacle: ob,
-      prompt: '박스 줍기',
+      object: trash, obstacle: ob, ring,
+      prompt: '쓰레기 줍기',
     });
   }
 

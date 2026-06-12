@@ -8,6 +8,7 @@ import InteractionPrompt from "./InteractionPrompt";
 import MobileControls from "./MobileControls";
 import WorldOverlay from "./WorldOverlay";
 import NpcDialogue from "./NpcDialogue";
+import QuestBanner from "./QuestBanner";
 import IntroScreen from "./IntroScreen";
 import Loader from "./Loader";
 
@@ -39,6 +40,7 @@ export default function HomePage() {
       <MobileControls />
       <WorldOverlay />
       <NpcDialogue />
+      <QuestBanner />
       <IntroScreen />
       <Loader />
     </>

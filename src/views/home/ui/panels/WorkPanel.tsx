@@ -19,7 +19,7 @@ export default function WorkPanel() {
 
         <hr className="rule" />
 
-        <article className="proj">
+        <article className="proj" id="proj-0">
           <div className="shot">
             <span className="idx">01</span>
             <span className="cap">漂流 / DRIFT — WebGL · 2025</span>
@@ -39,7 +39,7 @@ export default function WorkPanel() {
           </div>
         </article>
 
-        <article className="proj">
+        <article className="proj" id="proj-1">
           <div className="shot">
             <span className="idx">02</span>
             <span className="cap">結 / KNOT — D3 · 2024</span>
@@ -59,7 +59,7 @@ export default function WorkPanel() {
           </div>
         </article>
 
-        <article className="proj">
+        <article className="proj" id="proj-2">
           <div className="shot">
             <span className="idx">03</span>
             <span className="cap">餘白 / MARGIN — SITE · 2023</span>

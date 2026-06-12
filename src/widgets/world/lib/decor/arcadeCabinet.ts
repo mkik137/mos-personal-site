@@ -79,15 +79,6 @@ export function addArcadeCabinet({ scene, obstacles, pulsers }, x, z, rot, bodyC
   coin.position.set(0, 0.7, 0.55);
   g.add(coin);
 
-  // 바닥 네온 링
-  const ring = new THREE.Mesh(
-    new THREE.TorusGeometry(0.95, 0.05, 8, 28),
-    new THREE.MeshBasicMaterial({ color: screenColor }),
-  );
-  ring.rotation.x = Math.PI / 2; ring.position.y = 0.05;
-  g.add(ring);
-  pulsers.push({ mat: ring.material, base: screenColor, phase: seed * 0.6 });
-
   g.position.set(x, 0, z);
   g.rotation.y = rot;
   scene.add(g);

@@ -4,8 +4,8 @@ import { loadGlbCharacter } from '@/entities/character';
 
 export async function buildPlayer({ scene }) {
   const player = new THREE.Object3D();
-  // 광장 중앙에 분수대가 생겨서 남동 대각(벤치 동서남북 사이 빈 방향)으로 스폰.
-  player.position.set(2.6, 0, 2.6);
+  // 광장 중앙에 분수대(폭 8)가 있어서 남동 대각(벤치 동서남북 사이 빈 방향)으로 스폰.
+  player.position.set(4.6, 0, 4.6);
   scene.add(player);
 
   const playerModel = await loadGlbCharacter();
