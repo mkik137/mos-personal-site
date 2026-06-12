@@ -7,6 +7,7 @@
 // ─────────────────────────────────────────────
 import * as THREE from 'three';
 import { loadGlbProp } from '../helpers/loadGlbProp';
+import { addExitDoor } from '../helpers/exitDoor';
 
 // 실내 클램프 영역 — world.ts 의 실내 이동 경계가 사용.
 export const GALLERY = {
@@ -120,22 +121,60 @@ export async function buildGallery(ctx): Promise<{ dome: THREE.Mesh }> {
     });
   });
 
-  // ── 경력 게시판 — 화이트보드 재사용 (서쪽 벽 앞, 판이 남쪽을 보게) ──
-  const board = await loadGlbProp('/glb/prop/Whiteboard.glb', 1.9);
-  board.position.set(X - 6.3, 0, Z - D / 2 + 1.0);
-  board.rotation.y = 0.2 - Math.PI / 2; // dev 코너와 동일 보정 — 보드 면이 남쪽(시청자)
-  scene.add(board);
-  obstacles.push({ x: X - 6.3, z: Z - D / 2 + 1.0, r: 0.7 });
+  // ── 경력 게시판 — 전시장 중앙의 이젤 (전체 작업&경력 패널을 연다) ──
+  const easel = await loadGlbProp('/glb/prop/Easel.glb', 1.9); // Poly by Google — CC-BY 3.0 (크레딧 표기)
+  easel.position.set(X, 0, Z - 0.3);
+  easel.rotation.y = 0.25; // 입구 쪽으로 살짝 비스듬히
+  scene.add(easel);
+  obstacles.push({ x: X, z: Z - 0.3, r: 0.8 });
   pois.push({
     id: 'career-board', type: 'work-board',
-    x: X - 6.3, z: Z - D / 2 + 1.0, r: 2.2,
+    x: X, z: Z - 0.3, r: 2.4,
     prompt: '경력 게시판 보기',
   });
 
-  // ── 출구 — 남쪽 개방면 ──
+  // ── 전시회 소품 ──
+  // 받침대 + 조각상 (북쪽 양 코너), 관람 차단봉(액자 앞 한 줄), 화분(남쪽 코너)
+  const [pedestal1, pedestal2, stag, horse, plant1, plant2, ...bollards] = await Promise.all([
+    loadGlbProp('/glb/prop/Pedestal.glb', 1.0),       // Quaternius CC0
+    loadGlbProp('/glb/prop/Pedestal.glb', 1.0),
+    loadGlbProp('/glb/prop/Stag Statue.glb', 0.85),   // Quaternius CC0
+    loadGlbProp('/glb/prop/Horse Statue.glb', 0.8),   // Quaternius CC0
+    loadGlbProp('/glb/prop/Potted Plant.glb', 0.9),   // Kenney CC0
+    loadGlbProp('/glb/prop/Potted Plant.glb', 0.9),
+    ...[0, 1, 2, 3].map(() => loadGlbProp('/glb/prop/Bollard.glb', 0.85)), // J-Toastie CC-BY
+  ]);
+
+  // 받침대 위 조각상 (북서: 사슴, 북동: 말)
+  for (const [ped, statue, px] of [[pedestal1, stag, X - 6.3], [pedestal2, horse, X + 6.3]]) {
+    ped.position.set(px, 0, Z - 3.6);
+    scene.add(ped);
+    const top = new THREE.Box3().setFromObject(ped).max.y;
+    statue.position.set(px, top, Z - 3.6);
+    statue.rotation.y = px < X ? 0.6 : -0.6; // 입구 쪽으로 비스듬히
+    scene.add(statue);
+    obstacles.push({ x: px, z: Z - 3.6, r: 0.7 });
+  }
+
+  // 관람 차단봉 — 액자 벽 앞 한 줄 (관람 동선 표시, 사이로 지나갈 수 있음)
+  bollards.forEach((b, i) => {
+    const bx = X - 4.5 + i * 3;
+    b.position.set(bx, 0, Z - 3.2);
+    scene.add(b);
+    obstacles.push({ x: bx, z: Z - 3.2, r: 0.25 });
+  });
+
+  // 화분 — 남쪽 코너
+  plant1.position.set(X - 6.8, 0, Z + 3.6);
+  plant2.position.set(X + 6.8, 0, Z + 3.6);
+  scene.add(plant1, plant2);
+
+  // ── 출구 문 — 남쪽 개방면에 보이는 문 + 나가기 간판 ──
+  addExitDoor(scene, X, Z + 4.4);
+  obstacles.push({ x: X, z: Z + 4.4, r: 0.5 });
   pois.push({
     id: 'gallery-exit', type: 'gallery-exit',
-    x: X, z: Z + 4.2, r: 1.8,
+    x: X, z: Z + 4.4, r: 2.0,
     prompt: '밖으로 나가기',
   });
 

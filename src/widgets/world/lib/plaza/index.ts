@@ -10,7 +10,7 @@ import * as THREE from 'three';
 import { loadGlbProp } from '../helpers/loadGlbProp';
 import { buildPathDecor } from './pathDecor';
 
-const FLOOR_Y = 0.05; // 광장 바닥 타일 윗면
+const FLOOR_Y = 0.02; // 광장 바닥 타일 윗면
 const deg = (d) => (d * Math.PI) / 180;
 
 const FOUNTAIN_URL = '/glb/prop/Fountain.glb'; // Poly by Google — CC-BY 3.0 (크레딧 표기)

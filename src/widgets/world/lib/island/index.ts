@@ -60,9 +60,9 @@ export async function buildIsland({ scene }) {
       if (Math.hypot(x, z) <= PLAZA_R - 0.4) floorCells.push({ x, z });
     }
   }
-  // anchorTop: 타일 윗면을 지면에 맞추고 두께는 지면 아래로 → 캐릭터를 가리지 않음
+  // anchorTop: 타일 윗면을 지면(≈0)에 맞추고 두께는 지면 아래로 → 발이 안 잠긴다
   // 길과 같은 Cobblestone 으로 빈틈없이 포장 — 길에서 광장으로 자연스럽게 이어지는 돌바닥
-  await addTiles(scene, { url: '/glb/tile/Cobblestone tile.glb', tile: FLOOR_TILE, cells: floorCells, y: 0.05, rotateEach: true, anchorTop: true });
+  await addTiles(scene, { url: '/glb/tile/Cobblestone tile.glb', tile: FLOOR_TILE, cells: floorCells, y: 0.02, rotateEach: true, anchorTop: true });
 
   // ── 건물로 이어지는 길: Cobblestone (2칸 폭, 곡선 따라감) ──
   const cobbleCells = [];
@@ -76,10 +76,13 @@ export async function buildIsland({ scene }) {
       const perpx = -uz, perpz = ux;          // 수직
       const ry = Math.atan2(ux, uz);
       for (const off of [-COBBLE_TILE * 0.5, COBBLE_TILE * 0.5]) {
-        cobbleCells.push({ x: cx + perpx * off, z: cz + perpz * off, ry });
+        const tx = cx + perpx * off, tz = cz + perpz * off;
+        // 광장 안쪽에 떨어지는 셀은 제외 — 광장 타일과 같은 높이라 겹치면 z-fighting
+        if (Math.hypot(tx, tz) < PLAZA_R - 0.2) continue;
+        cobbleCells.push({ x: tx, z: tz, ry });
       }
     }
   }
-  // 코블은 잔디(윗면 0.05)보다 살짝 위(0.1)에 깔아, 길 아래로 채운 잔디가 비치지 않게.
-  await addTiles(scene, { url: '/glb/tile/Cobblestone tile.glb', tile: COBBLE_TILE, cells: cobbleCells, y: 0.1, anchorTop: true });
+  // 광장 타일과 같은 높이(윗면 0.02) — 발이 안 잠기고 광장↔길 단차도 없다.
+  await addTiles(scene, { url: '/glb/tile/Cobblestone tile.glb', tile: COBBLE_TILE, cells: cobbleCells, y: 0.02, anchorTop: true });
 }

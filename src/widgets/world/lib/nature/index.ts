@@ -83,7 +83,7 @@ export async function buildNature(ctx): Promise<void> {
   // ── 덤스터 — 중앙 광장 가장자리 (길 입구들 사이 빈 각도, 스폰(0,0,3.5)과 안 겹침) ──
   const dump = await loadGlbProp(DUMPSTER_URL, 2.4, true);
   const dumpX = 3.2, dumpZ = 6.8;
-  dump.position.set(dumpX, 0.05, dumpZ); // 광장 바닥 타일 윗면(0.05)에 맞춤
+  dump.position.set(dumpX, 0.02, dumpZ); // 광장 바닥 타일 윗면(0.02)에 맞춤
   dump.rotation.y = Math.atan2(-dumpX, -dumpZ); // 광장 중심을 바라보게
   scene.add(dump);
   obstacles.push({ x: dumpX, z: dumpZ, r: 1.4 });

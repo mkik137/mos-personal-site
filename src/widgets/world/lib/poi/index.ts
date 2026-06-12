@@ -53,7 +53,7 @@ export async function buildPOIs(ctx) {
     id: 'guestbook', type: 'door',
     x: 14 * S, z: 7 * S, r: 6.8, // 건물 중심 + 충돌 반경(5.0) 바깥에서 잡히는 반경
     object: guestbook,
-    prompt: '방명록 — 흔적 남기기',
+    prompt: '파티룸 들어가기',
     labelTitle: '방명록', labelSub: 'GUESTBOOK',
     labelY: 6.0,
   });

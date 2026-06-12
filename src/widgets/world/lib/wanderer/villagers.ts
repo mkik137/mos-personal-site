@@ -8,7 +8,7 @@
 export const VILLAGERS = [
   {
     url: '/glb/character/npc/Male Officer.glb',
-    anchor: { x: 0, z: 0 }, radius: 7.5, floorY: 0.05, // 광장 순찰
+    anchor: { x: 0, z: 0 }, radius: 7.5, floorY: 0.02, // 광장 순찰 (광장 타일 윗면)
     name: '도윤', prompt: '도윤과 대화하기',
     lines: [
       ['오늘도 광장은 평화롭네요. 순찰 중입니다.', '큐비가 쓰레기 때문에 골치라던데, 한번 들어봐 주세요.'],

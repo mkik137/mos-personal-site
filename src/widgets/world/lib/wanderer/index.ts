@@ -274,7 +274,7 @@ export async function buildWanderer(ctx) {
     url: '/glb/character/npc/Cube Guy.glb',
     height: 0.85, speed: 1.4,
     anchor: { x: 0, z: 0 }, radius: 8,
-    start: { x: -6, z: 2.5 }, floorY: 0.05, // 커진 분수대(반경 ~4.3) 밖에서 시작
+    start: { x: -6, z: 2.5 }, floorY: 0.02, // 분수대 밖에서 시작 (광장 타일 윗면)
     bubble: true, // 퀘스트 NPC 표시 — 머리 위 "···" 말풍선
   });
 }

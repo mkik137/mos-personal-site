@@ -10,7 +10,8 @@ import { PATHS, pathPoints } from '../layout';
 
 const LAMP_URL = '/glb/prop/Street Light.glb'; // J-Toastie — CC-BY 3.0 (크레딧 표기)
 
-// 길 중심선의 t 지점에서 수직으로 off 만큼 벗어난 좌표 (cx/cz = 중심선 위 원점)
+// 길 중심선의 t 지점에서 수직으로 off 만큼 벗어난 좌표
+// (cx/cz = 중심선 위 원점, tx/tz = 진행 방향 단위 벡터)
 function spotAt(pts, t, off) {
   const idx = Math.round((pts.length - 1) * t);
   const [x, z] = pts[idx];
@@ -18,7 +19,7 @@ function spotAt(pts, t, off) {
   const [bx, bz] = pts[Math.min(pts.length - 1, idx + 1)];
   const dx = bx - ax, dz = bz - az;
   const dl = Math.hypot(dx, dz) || 1;
-  return { x: x + (-dz / dl) * off, z: z + (dx / dl) * off, cx: x, cz: z };
+  return { x: x + (-dz / dl) * off, z: z + (dx / dl) * off, cx: x, cz: z, tx: dx / dl, tz: dz / dl };
 }
 
 export async function buildPathDecor(ctx): Promise<void> {
@@ -58,9 +59,10 @@ export async function buildPathDecor(ctx): Promise<void> {
     }
     // 표지판·배럴 — 건물로 가는 길(endShort≥4)에만
     if ((p.endShort || 0) >= 4) {
-      const s = spotAt(pts, 0.07, pi % 2 ? 2.9 : -2.9); // 길 입구, 판이 길 쪽을 보게 (침범 방지 여유)
+      const s = spotAt(pts, 0.07, pi % 2 ? 2.9 : -2.9); // 길 입구 (침범 방지 여유)
       if (isClear(s.x, s.z, 1.0)) {
-        signCells.push({ x: s.x, z: s.z, ry: Math.atan2(s.cx - s.x, s.cz - s.z) });
+        // 화살표(모델 로컬 +X)가 길 진행 방향(건물 쪽)을 가리키게
+        signCells.push({ x: s.x, z: s.z, ry: Math.atan2(-s.tz, s.tx) });
         obstacles.push({ x: s.x, z: s.z, r: 0.35 });
       }
       const b = spotAt(pts, 0.93, pi % 2 ? -3.0 : 3.0); // 건물 앞 길 끝 (배럴이 통통해서 여유 크게)
@@ -74,7 +76,7 @@ export async function buildPathDecor(ctx): Promise<void> {
   await Promise.all([
     addInstanced(scene, { url: LAMP_URL, baseSize: 3.4, cells: lampCells }),
     addInstanced(scene, { url: '/glb/prop/Flower Group.glb', baseSize: 0.55, cells: flowerCells, castShadow: false }), // Quaternius CC0
-    addInstanced(scene, { url: '/glb/prop/Wooden Sign.glb',  baseSize: 1.5,  cells: signCells }),                      // J-Toastie CC-BY
+    addInstanced(scene, { url: '/glb/prop/Arrow Sign.glb',   baseSize: 1.4,  cells: signCells, y: -0.04 }),            // Quaternius CC0 — 기둥을 살짝 심어 들뜸 방지
     addInstanced(scene, { url: '/glb/prop/Barrel.glb',       baseSize: 1.0,  cells: barrelCells }),                    // Quaternius CC0
   ]);
 }

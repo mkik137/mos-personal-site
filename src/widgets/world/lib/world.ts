@@ -15,6 +15,7 @@ import { buildNature }  from './nature';
 import { buildWanderer, buildVillagers } from './wanderer';
 import { buildRoom, ROOM } from './room';
 import { buildGallery, GALLERY } from './gallery';
+import { buildParty, PARTY } from './party';
 import { buildPlaza } from './plaza';
 import { NPC_LINES_FIRST, NPC_LINES_AGAIN } from './dialogueLines';
 import {
@@ -35,6 +36,7 @@ let outdoorPos = null;     // 들어가기 전 위치 (나올 때 복원)
 let savedCamDist = null;   // 실내용으로 줄였던 카메라 거리 복원용
 let roomDome = null;       // 가람이의 방 배경 돔
 let galleryDome = null;    // 갤러리 배경 돔
+let partyDome = null;      // 방명록 파티룸 배경 돔
 let clock;
 let cloudGroup;
 
@@ -148,6 +150,11 @@ async function init() {
   buildGallery(ctx)
     .then((r) => { galleryDome = r.dome; })
     .catch((e) => console.warn('[gallery] load failed:', e));
+
+  // 방명록 파티룸 (실내 씬) — 마찬가지로 비동기 합류.
+  buildParty(ctx)
+    .then((r) => { partyDome = r.dome; })
+    .catch((e) => console.warn('[party] load failed:', e));
 
   // 주민 NPC들 — 마찬가지로 비동기 합류 (실패한 모델은 buildVillagers 안에서 건너뜀).
   buildVillagers(ctx).then((vs) => {
@@ -289,7 +296,7 @@ function bindEvents() {
   let dragging = false, lastX = 0, lastY = 0;
   const canvas = renderer.domElement;
   canvas.addEventListener('pointerdown', (e) => {
-    if (frozen) return;
+    if (frozen || indoor) return; // 실내에선 연출된 고정 앵글 유지 (회전 잠금)
     dragging = true; lastX = e.clientX; lastY = e.clientY;
     canvas.setPointerCapture(e.pointerId);
   });
@@ -302,8 +309,8 @@ function bindEvents() {
   });
   canvas.addEventListener('pointerup', () => { dragging = false; });
   canvas.addEventListener('wheel', (e) => {
-    if (indoor) return; // 실내(가람이의 방)에선 줌 고정 — 방 밖이 보이지 않게
-    camState.dist = THREE.MathUtils.clamp(camState.dist + Math.sign(e.deltaY) * 1.0, 8, 22);
+    if (indoor) return; // 실내에선 줌 고정 — 방 밖이 보이지 않게
+    camState.dist = THREE.MathUtils.clamp(camState.dist + Math.sign(e.deltaY) * 1.0, 8, 12);
   }, { passive: true });
 
   const prompt = document.getElementById('prompt');
@@ -370,6 +377,8 @@ function tryInteract() {
   if (!activePoi) return;
   if (activePoi.id === 'about') startDialogue(activePoi);
   else if (activePoi.id === 'work') enterGallery();
+  else if (activePoi.id === 'guestbook') enterParty();
+  else if (activePoi.type === 'guestbook-desk') openGuestbookPanel();
   else if (activePoi.type === 'helper') startHelperDialogue();
   else if (activePoi.type === 'villager') startVillagerDialogue(activePoi.villager);
   else if (activePoi.type === 'box') pickupBox(activePoi);
@@ -377,7 +386,7 @@ function tryInteract() {
   else if (activePoi.type === 'house-enter') enterRoom();
   else if (activePoi.type === 'frame') openWorkPanel(activePoi.idx);
   else if (activePoi.type === 'work-board') openWorkPanel();
-  else if (activePoi.type === 'house-exit' || activePoi.type === 'gallery-exit') exitInterior();
+  else if (activePoi.type === 'house-exit' || activePoi.type === 'gallery-exit' || activePoi.type === 'party-exit') exitInterior();
   else openPanel(activePoi);
 }
 
@@ -434,7 +443,7 @@ function exitInterior() {
 function enterRoom() {
   enterInterior({
     bounds: ROOM, spawn: ROOM.spawn, dome: roomDome,
-    yaw: 0.18, pitch: 0.78, dist: 10,
+    yaw: 0.18, pitch: 0.55, dist: 8.5,
     greeting: '가람이의 방에 들어왔다.',
   });
 }
@@ -443,21 +452,39 @@ function enterRoom() {
 function enterGallery() {
   enterInterior({
     bounds: GALLERY, spawn: GALLERY.spawn, dome: galleryDome,
-    yaw: 0, pitch: 0.6, dist: 11,
+    yaw: 0, pitch: 0.6, dist: 8.5,
     greeting: '가람의 스튜디오 갤러리에 들어왔다.',
   });
 }
 
-// 작업&경력 패널 열기 — 액자에서 호출되면 해당 프로젝트 위치로 스크롤
-function openWorkPanel(scrollToIdx = null) {
+// 방명록 파티룸 — 친구들 사진과 풍선으로 꾸민 방, 테이블에서 방명록을 남긴다
+function enterParty() {
+  enterInterior({
+    bounds: PARTY, spawn: PARTY.spawn, dome: partyDome,
+    yaw: 0, pitch: 0.62, dist: 8.5,
+    greeting: '방명록 파티룸에 들어왔다! 🎉',
+  });
+}
+
+// 방명록 패널 — 파티룸 테이블에서 연다 (id 가 guestbook 이라 __initGuestbook 동작)
+function openGuestbookPanel() {
+  const panel = document.getElementById('panel-guestbook');
+  if (panel) openPanel({ id: 'guestbook', panel });
+}
+
+// 작업&경력 패널 열기
+//  soloIdx 지정(액자) → 해당 프로젝트 아티클만 단독 표시
+//  null(경력 게시판)   → 전체 내용 표시
+function openWorkPanel(soloIdx = null) {
   const panel = document.getElementById('panel-work');
   if (!panel) return;
-  openPanel({ id: 'work', panel });
-  if (scrollToIdx !== null) {
-    const el = panel.querySelector(`#proj-${scrollToIdx}`);
-    const body = panel.querySelector('.panel-body');
-    if (el && body) requestAnimationFrame(() => { body.scrollTop = el.offsetTop - 60; });
+  const body = panel.querySelector('.panel-body');
+  if (body) {
+    [...body.children].forEach((el) => {
+      el.style.display = soloIdx === null || el.id === `proj-${soloIdx}` ? '' : 'none';
+    });
   }
+  openPanel({ id: 'work', panel });
 }
 
 // 텔레포트 직후 카메라가 섬을 가로질러 날아오지 않게 즉시 스냅.

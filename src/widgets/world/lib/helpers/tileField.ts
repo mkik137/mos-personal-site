@@ -16,10 +16,11 @@ function loadRaw(url: string): Promise<THREE.Object3D> {
 // GLB 프롭(나무 등)을 cells 위치마다 InstancedMesh 로 대량 배치 (draw call 최소).
 //   baseSize  : 기준 크기 (byWidth=false → 높이 / true → 가로폭)으로 정규화
 //   cells     : [{ x, z, ry?, s? }] 위치 + 개별 Y회전 + 개별 스케일배율(s)
-// 바닥은 항상 y=0 에 닿게 정렬. 나무처럼 그루마다 크기/회전이 다른 프롭에 적합.
+//   y         : 바닥 기준 오프셋 (음수 → 땅에 심기. 모델 바운딩이 실제 발보다 낮을 때 보정)
+// 바닥은 항상 y(기본 0) 에 닿게 정렬. 나무처럼 그루마다 크기/회전이 다른 프롭에 적합.
 export async function addInstanced(
   scene: THREE.Scene,
-  { url, baseSize, byWidth = false, cells, castShadow = true },
+  { url, baseSize, byWidth = false, cells, castShadow = true, y = 0 },
 ): Promise<THREE.InstancedMesh[]> {
   if (!cells.length) return [];
   const template = await loadRaw(url);
@@ -50,7 +51,7 @@ export async function addInstanced(
     for (let i = 0; i < cells.length; i++) {
       const c = cells[i];
       const sc = c.s || 1;
-      T.makeTranslation(c.x, -baseY * sc, c.z); // 바닥을 y=0 에
+      T.makeTranslation(c.x, y - baseY * sc, c.z); // 바닥을 y 에
       R.makeRotationY(c.ry || 0);
       Sc.makeScale(sc, sc, sc);
       m.copy(T).multiply(R).multiply(Sc).multiply(s.mw);
