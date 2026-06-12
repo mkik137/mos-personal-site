@@ -151,13 +151,65 @@ room/              실내 씬 (가람이의 방 디오라마)
 
 - **CC0 / Public Domain**: 표기 불필요 — 선호 작성자: Quaternius, Kenney, Kay Lousberg
 - **CC-BY 3.0**: `src/views/home/ui/IntroScreen.tsx` 하단 크레딧에 작성자 추가 **필수**
-  - 현재 표기 중: J-Toastie, Khor Chin Heong
+  - 현재 표기 중: J-Toastie, Khor Chin Heong, Poly by Google, Zsky,
+    Jeremy Eyring, Bruno Oliveira, Seth Plechas, Nick Slough
 
 ### 코드에서 사용하는 로더
 
 - 정적 프롭: `loadGlbProp(url, size, byWidth?)` (`widgets/world/lib/helpers/loadGlbProp.ts`)
   — 바닥-중심 정규화 wrapper 반환, `position.set(x, 0, z)` 로 바로 배치
-- 대량 배치(나무·타일): `addInstanced` / `addTiles` (`helpers/tileField.ts`)
-  — InstancedMesh 로 수백 개도 draw call 1회
+- 대량 배치(나무·타일·길가 소품): `addInstanced` / `addTiles` (`helpers/tileField.ts`)
+  — InstancedMesh 로 수백 개도 draw call 1회. `y` 옵션으로 들뜸 보정(땅에 심기) 가능
 - 스킨드 캐릭터: `loadAvatar(url, height)` (`entities/character`)
   — 스킨드 메시는 `frustumCulled=false` + 본 기준 정규화가 필수 (일반 Box3 측정은 부정확)
+  — 정확한 시각 크기는 `skeleton.update()` 후 skinned `computeBoundingBox` 로 실측
+    (`wanderer/createWanderer` 참고; 씬에 추가되기 전엔 boneMatrices 가 갱신 안 됨)
+
+---
+
+## 월드 엔진 (`widgets/world/lib`)
+
+`world.ts` 는 오케스트레이터(루프·이벤트·이동·카메라·POI)이고, 콘텐츠는 서브모듈로 위임한다.
+
+### 모듈 맵
+
+```
+world.ts            오케스트레이터 — init/loop/입력/카메라/상호작용 라우팅/실내 입퇴장
+constants.ts        색상 팔레트·MAP_SCALE·ISLAND_R/WALK_R
+layout.ts           건물 좌표·길(PATHS, pathPoints)·예약 구역·scatter
+island/             지형·광장/길 타일
+decor/              아케이드 게임기·뽑기·가챠·풍선
+plaza/              광장 소품(분수대·벤치·테두리) + pathDecor.ts(가로등·꽃·표지판·배럴)
+nature/             나무(InstancedMesh)·덤불·바위·밭 + 덤스터/쓰레기(퀘스트 오브젝트)
+poi/                고정 POI (가람 NPC·스튜디오·방명록 건물)
+player/             플레이어 캐릭터 (Mixamo 애니메이션)
+wanderer/           배회 NPC 공통 로직 + villagers.ts(주민 데이터 — 주민 추가는 여기만)
+dialogue.ts         자막 대화 엔진 (타이핑·예/아니오 선택지) — 훅 주입(initDialogue)
+dialogueLines.ts    모든 대사 텍스트 + 화자별 색상(SPEAKER_COLORS) — 대사 수정은 여기만
+quest.ts            큐비 쓰레기 퀘스트 (수락/줍기/배출/완료 배너) — 의존성 주입(initQuest)
+room/ gallery/ party/  실내 씬 3종 (가람이의 방·작업&경력 갤러리·방명록 파티룸)
+helpers/            loadGlbProp·tileField·exitDoor·interactMarker·makeTextPlane 등
+```
+
+### 핵심 패턴
+
+- **ctx 객체**: 빌더들은 `{ scene, obstacles, pois, spinners, floaters, pulsers }` 를 공유.
+  `obstacles` 는 충돌 + 후속 배치 회피, `pois` 는 상호작용 지점(`world.ts tryInteract` 가
+  `id`/`type` 으로 라우팅). 움직이는 POI 는 `follow: object3d` 로 좌표 자동 동기화.
+- **빌드 순서가 곧 회피 규칙**: `buildDecor → buildPlaza → buildNature` 순서라
+  먼저 obstacle 을 등록한 소품을 나무·스캐터가 알아서 피해 자란다.
+- **실내 시스템**: 실내는 섬 밖 좌표(방 220 / 갤러리 260 / 파티룸 300)에 지어두고
+  `enterInterior/exitInterior` 로 텔레포트. 배경 돔(입장 중에만 visible),
+  이동 클램프(`indoor.halfX/halfZ`), 카메라 고정(회전·줌 잠금) + 연출 앵글,
+  `addExitDoor`(나가기 문) + `addInteractMarker`(E 키캡 표시)가 표준 구성.
+- **표면 높이**: 타일(광장·길) 윗면 = **0.02**. 광장 위 소품·NPC floorY 도 0.02 로 맞출 것.
+- **앰비언트 애니메이션**: `spinners`(회전)·`floaters`(보브)·`pulsers`(색 펄스)에
+  push 만 하면 루프가 알아서 돌린다 — 디스코볼·물방울·말풍선·마커가 모두 이 방식.
+
+### 검증 방법 (필수 습관)
+
+- 모든 변경 후 `npx tsc --noEmit`.
+- 시각·동선 변경은 Playwright 헤드리스로 실제 확인:
+  `window.__dbg = { pois, player, camState }` 를 init 에 **임시로** 넣고
+  스크립트에서 텔레포트/키 입력/스크린샷 → 확인 후 **반드시 제거**.
+  (소프트웨어 렌더링이라 ~3FPS — 타이핑·이동 대기 시간을 넉넉히 잡을 것)
