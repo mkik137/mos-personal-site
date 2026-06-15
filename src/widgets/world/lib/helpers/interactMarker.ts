@@ -1,9 +1,12 @@
 // @ts-nocheck
-// 상호작용 표시 마커 — 오브젝트 위에 둥실거리는 'E' 키캡 스프라이트.
-// HUD 의 키 표기(kbd)와 같은 모양이라 "E 로 상호작용"이 즉시 읽힌다.
+// 상호작용 표시 마커 — 오브젝트 위에 둥실거리는 키캡 스프라이트.
+// 데스크톱은 'E'(HUD 키 표기와 동일), 터치 기기는 '탭'으로 그려 조작법이 즉시 읽힌다.
 import * as THREE from 'three';
 
 let sharedTex = null;
+
+// 빌드 시점(body.touch 부착 전)에 호출되므로 미디어쿼리로 직접 감지한다.
+const isTouch = typeof matchMedia !== 'undefined' && matchMedia('(pointer: coarse)').matches;
 
 function makeKeycapTexture() {
   const cv = document.createElement('canvas');
@@ -17,12 +20,17 @@ function makeKeycapTexture() {
   c.lineWidth = 5;
   c.beginPath(); c.roundRect(14, 10, 68, 68, 16);
   c.fill(); c.stroke();
-  // E 글자
+  // 글자 — 데스크톱 'E' / 터치 '탭'
   c.fillStyle = '#1c1e2a';
-  c.font = '700 44px Poppins, Arial, sans-serif';
   c.textAlign = 'center';
   c.textBaseline = 'middle';
-  c.fillText('E', 48, 46);
+  if (isTouch) {
+    c.font = '700 34px Poppins, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif';
+    c.fillText('탭', 48, 47);
+  } else {
+    c.font = '700 44px Poppins, Arial, sans-serif';
+    c.fillText('E', 48, 46);
+  }
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;

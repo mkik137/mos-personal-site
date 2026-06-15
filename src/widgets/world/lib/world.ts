@@ -384,10 +384,24 @@ function bindEvents() {
 
   if (matchMedia('(pointer: coarse)').matches) {
     document.body.classList.add('touch');
+    // 키캡 표기를 터치용으로 — 프롬프트의 'E', 대화창 "계속하기 E" 힌트
+    document.querySelectorAll('.pkey, .dlg-key').forEach((el) => { el.textContent = '탭'; });
     setupJoystick();
     const jb = document.getElementById('jump-btn');
     if (jb) jb.addEventListener('pointerdown', (e) => { e.preventDefault(); tryJump(); });
+    const ab = document.getElementById('act-btn');
+    if (ab) ab.addEventListener('pointerdown', (e) => { e.preventDefault(); tryInteract(); });
+    const bb = document.getElementById('bag-btn');
+    if (bb) bb.addEventListener('pointerdown', (e) => { e.preventDefault(); mobileToggleBag(); });
   }
+}
+
+// 모바일 가방 버튼 — I 키 키다운 라우팅과 동일한 우선순위로 토글한다.
+function mobileToggleBag() {
+  if (dialogueActive()) return;
+  if (mapOpen()) { closeMap(); return; }
+  if (inventoryOpen()) { closeInventory(); return; }
+  if (started && !panelOpen) toggleInventory();
 }
 
 function setKey(code, down) {
@@ -604,8 +618,12 @@ function showPrompt(text) {
   const p = document.getElementById('prompt');
   p.querySelector('.ptxt').textContent = text;
   p.classList.add('show');
+  document.getElementById('act-btn')?.classList.add('show'); // 모바일 상호작용 버튼
 }
-function hidePrompt() { document.getElementById('prompt').classList.remove('show'); }
+function hidePrompt() {
+  document.getElementById('prompt').classList.remove('show');
+  document.getElementById('act-btn')?.classList.remove('show');
+}
 function startWorld() {
   started = true;
   document.getElementById('intro')?.classList.add('hide');

@@ -29,3 +29,32 @@ body.touch #joy { display: block; }
 }
 #jump-btn:active { transform: scale(0.9); }
 body.touch #jump-btn { display: grid; }
+
+/* mobile interact button — 활성 POI가 있을 때만 표시 (showPrompt/hidePrompt가 .show 토글) */
+#act-btn {
+  position: fixed; right: 28px; bottom: 124px; z-index: 25;
+  width: 76px; height: 76px; border-radius: 999px;
+  display: none; place-items: center;
+  background: #2f9e6e; color: #fff; border: 0;
+  font-size: 30px; line-height: 1;
+  box-shadow: 0 8px 22px rgba(47,158,110,0.4);
+  cursor: pointer; touch-action: none; user-select: none;
+  transition: transform 0.12s ease;
+}
+#act-btn:active { transform: scale(0.9); }
+body.touch #act-btn.show { display: grid; }
+
+/* mobile bag(inventory) button — 우측 버튼 스택 최상단(점프·상호작용 위). 미니맵(터치 시 우측 상단)과 겹치지 않게 하단 배치 */
+#bag-btn {
+  position: fixed; right: 28px; bottom: 212px; z-index: 25;
+  width: 60px; height: 60px; border-radius: 999px;
+  display: none; place-items: center;
+  background: rgba(255,255,255,0.55); border: 1px solid rgba(255,255,255,0.7);
+  backdrop-filter: blur(6px);
+  font-size: 24px; line-height: 1;
+  box-shadow: 0 8px 22px rgba(30,40,60,0.18);
+  cursor: pointer; touch-action: none; user-select: none;
+  transition: transform 0.12s ease;
+}
+#bag-btn:active { transform: scale(0.9); }
+body.touch #bag-btn { display: grid; }

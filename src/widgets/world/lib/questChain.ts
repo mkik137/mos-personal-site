@@ -18,6 +18,7 @@ import { openDialogue } from './dialogue';
 import { addItem, removeItem, itemCount } from './inventory';
 import {
   GUARD_NAME, GUARD_LINES_FIRST, GUARD_LINES_REMIND, GUARD_LINES_CLEARED, GUARD_LINES_CASUAL,
+  GUARD_LINES_FIRST_TOUCH, GUARD_LINES_REMIND_TOUCH,
   GARAM_GALLERY_GIVE,
   VENDOR_NAME, VENDOR_LINES_CASUAL, VENDOR_PICK_GIVE, VENDOR_NEED_FRUIT,
   VENDOR_DELIVERY_GIVE, VENDOR_RETRY, VENDOR_AFTER,
@@ -42,6 +43,9 @@ let deps = null;            // { scene, pois, obstacles, onPoiRemoved, getVillag
 let stage = 'guard';        // guard | gallery | fruit | delivery | trash | ending | done
 let guardCasual = 0;
 let vendorCasual = 0;
+// 터치 기기 여부 — 안내 문구를 키보드(WASD/I) ↔ 조이스틱·🎒 버튼으로 분기.
+// (world.ts init 에서 (pointer: coarse) 감지 시 body.touch 클래스를 붙인다)
+const isTouch = (): boolean => typeof document !== 'undefined' && document.body.classList.contains('touch');
 // 경비 적응 훈련(튜토리얼) 퀘스트 — 직접 이동·가방 열기를 해야 통과
 let tutorialGiven = false, tutorialDone = false, moveDone = false, invDone = false;
 let movedDirs = new Set();   // 적응 훈련: 실제로 사용한 이동 방향(f/b/l/r) — 4방향 모두 써야 통과
@@ -135,8 +139,10 @@ export function talkGuard(): void {
       // 훈련 퀘스트 부여 — 말로 설명이 아니라 직접 해보게 한다.
       tutorialGiven = true;
       updateTutorialObjective();
-      showQuestStart('적응 훈련 🎮', 'WASD 4방향 이동 + I 로 가방 열기');
-      openDialogue(GUARD_LINES_FIRST, GUARD_NAME, opts);
+      showQuestStart('적응 훈련 🎮', isTouch()
+        ? '조이스틱 4방향 이동 + 🎒 버튼으로 가방 열기'
+        : 'WASD 4방향 이동 + I 로 가방 열기');
+      openDialogue(isTouch() ? GUARD_LINES_FIRST_TOUCH : GUARD_LINES_FIRST, GUARD_NAME, opts);
       return;
     }
     if (tutorialReady) {
@@ -150,7 +156,8 @@ export function talkGuard(): void {
       return;
     }
     // 아직 둘 다 못 함 — 재촉
-    openDialogue(GUARD_LINES_REMIND[(moveDone || invDone ? 1 : 0) % GUARD_LINES_REMIND.length], GUARD_NAME, opts);
+    const remind = isTouch() ? GUARD_LINES_REMIND_TOUCH : GUARD_LINES_REMIND;
+    openDialogue(remind[(moveDone || invDone ? 1 : 0) % remind.length], GUARD_NAME, opts);
     return;
   }
   if (stage === 'guard' && tutorialDone) {
@@ -162,10 +169,12 @@ export function talkGuard(): void {
   openDialogue(GUARD_LINES_CASUAL[guardCasual++ % GUARD_LINES_CASUAL.length], GUARD_NAME, opts);
 }
 
-// 훈련 진행 목표 HUD — 이동(WASD 4방향)/가방 체크리스트.
+// 훈련 진행 목표 HUD — 이동(4방향)/가방 체크리스트. 터치 기기는 조이스틱·🎒 버튼으로 안내.
 function updateTutorialObjective() {
   const n = Math.min(movedDirs.size, 4);
-  setObjective(`🎮 적응 훈련 — 이동 WASD ${n}/4 ${moveDone ? '✅' : ''}· 가방(I) ${invDone ? '✅' : '⬜'}`);
+  const move = isTouch() ? '조이스틱' : 'WASD';
+  const bag = isTouch() ? '가방(🎒)' : '가방(I)';
+  setObjective(`🎮 적응 훈련 — 이동 ${move} ${n}/4 ${moveDone ? '✅' : ''}· ${bag} ${invDone ? '✅' : '⬜'}`);
 }
 
 // 플레이어가 움직일 때 (world.ts updateMovement 에서 input 과 함께 호출).
