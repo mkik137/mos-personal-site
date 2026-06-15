@@ -1,0 +1,286 @@
+/* ── 퀘스트 체인 HUD ───────────────────────────── */
+
+/* 현재 목표 — 상단 중앙, 항상 표시 */
+#quest-objective {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  z-index: 24;
+  display: none;
+  align-items: center;
+  gap: 9px;
+  max-width: min(90vw, 520px);
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-family: "Pretendard", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: #fff6e9;
+  background: linear-gradient(180deg, rgba(40, 30, 16, 0.82) 0%, rgba(28, 20, 10, 0.86) 100%);
+  border: 1px solid rgba(255, 209, 122, 0.4);
+  box-shadow: 0 8px 24px rgba(10, 6, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+#quest-objective.show {
+  display: flex;
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+#quest-objective .qo-pin {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #ffd76a;
+  box-shadow: 0 0 8px #ffd76a;
+  flex: none;
+  animation: qo-pulse 1.6s ease-in-out infinite;
+}
+@keyframes qo-pulse {
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+}
+body.touch #quest-objective { top: 14px; }
+
+/* 배달 타임어택 카운트다운 — 상단 중앙(목표 아래) */
+#delivery-timer {
+  position: fixed;
+  top: 108px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 25;
+  display: none;
+  width: 230px;
+  padding: 10px 14px 12px;
+  border-radius: 14px;
+  text-align: center;
+  background: linear-gradient(180deg, rgba(26, 32, 52, 0.92) 0%, rgba(18, 22, 38, 0.94) 100%);
+  border: 1px solid rgba(150, 178, 255, 0.34);
+  box-shadow: 0 12px 30px rgba(4, 6, 16, 0.5);
+  pointer-events: none;
+}
+#delivery-timer.show { display: block; }
+#delivery-timer .dt-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 6px;
+  color: #eaf1ff;
+}
+#delivery-timer .dt-label {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: rgba(180, 198, 240, 0.8);
+}
+#delivery-timer .dt-time {
+  font-family: "Poppins", sans-serif;
+  font-weight: 700;
+  font-size: 26px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+#delivery-timer .dt-unit {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  color: rgba(180, 198, 240, 0.8);
+}
+#delivery-timer .dt-bar {
+  margin-top: 8px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+#delivery-timer .dt-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #6fe0a0 0%, #ffd76a 100%);
+  transition: width 0.2s linear;
+}
+#delivery-timer.danger .dt-time { color: #ff6b6b; }
+#delivery-timer.danger .dt-fill { background: #ff6b6b; }
+#delivery-timer.danger { animation: dt-shake 0.5s ease-in-out infinite; }
+@keyframes dt-shake {
+  0%, 100% { transform: translateX(-50%); }
+  25% { transform: translateX(calc(-50% - 3px)); }
+  75% { transform: translateX(calc(-50% + 3px)); }
+}
+
+/* 퀘스트 시작 배너 — 퀘스트 받을 때 (완료 배너와 짝, 시안 톤) */
+#quest-start {
+  position: fixed;
+  left: 50%;
+  top: 30%;
+  transform: translate(-50%, -50%);
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0;
+  text-align: center;
+}
+#quest-start.show {
+  animation: qs-pop 3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes qs-pop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.7); filter: blur(6px); }
+  12% { opacity: 1; transform: translate(-50%, -50%) scale(1.06); filter: blur(0); }
+  20% { transform: translate(-50%, -50%) scale(1); }
+  80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -44%) scale(1.02); }
+}
+#quest-start .qs-kicker {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: #7fe3ff;
+  text-shadow: 0 0 12px rgba(60, 180, 255, 0.85);
+}
+#quest-start .qs-title {
+  margin-top: 8px;
+  font-family: "Noto Serif KR", "Pretendard", serif;
+  font-weight: 700;
+  font-size: clamp(1.9rem, 5vw, 2.9rem);
+  letter-spacing: 0.02em;
+  background: linear-gradient(180deg, #e6faff 0%, #7fe3ff 48%, #2f9fe0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(10, 50, 80, 0.5)) drop-shadow(0 0 22px rgba(80, 190, 255, 0.55));
+}
+#quest-start .qs-sub {
+  margin-top: 10px;
+  font-family: "Pretendard", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #eaf7ff;
+  text-shadow: 0 1px 3px rgba(0, 20, 40, 0.7), 0 0 14px rgba(80, 180, 255, 0.4);
+}
+#quest-start .qs-sub::before,
+#quest-start .qs-sub::after {
+  content: "─────";
+  margin: 0 12px;
+  color: rgba(127, 227, 255, 0.7);
+  letter-spacing: -2px;
+}
+
+/* 배달 등급 팝(S/A/B) — 중앙 연출 */
+#delivery-result {
+  position: fixed;
+  left: 50%;
+  top: 38%;
+  transform: translate(-50%, -50%);
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0;
+  text-align: center;
+}
+#delivery-result.show {
+  animation: dr-pop 3.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@keyframes dr-pop {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  12% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); }
+  20% { transform: translate(-50%, -50%) scale(1); }
+  82% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -56%) scale(1.02); }
+}
+#delivery-result .dr-kicker {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  color: #ffd76a;
+  text-shadow: 0 0 12px rgba(255, 180, 60, 0.8);
+}
+#delivery-result .dr-grade {
+  font-family: "Poppins", sans-serif;
+  font-weight: 700;
+  font-size: clamp(4rem, 14vw, 7rem);
+  line-height: 1;
+  background: linear-gradient(180deg, #fff3c4 0%, #ffd76a 45%, #e09c2d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(110, 60, 10, 0.55)) drop-shadow(0 0 24px rgba(255, 190, 80, 0.6));
+}
+/* 등급별 색조 */
+#delivery-result[data-grade="A"] .dr-grade {
+  background: linear-gradient(180deg, #e8f0ff 0%, #9ec1ff 50%, #5b8de0 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+#delivery-result[data-grade="B"] .dr-grade {
+  background: linear-gradient(180deg, #f0f0f0 0%, #c4c8d0 50%, #8a8f99 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+#delivery-result .dr-text {
+  margin-top: 6px;
+  font-family: "Pretendard", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff6e0;
+  text-shadow: 0 1px 3px rgba(40, 20, 0, 0.7);
+}
+
+/* 엔딩 배너 — 풀스크린 연출 */
+#ending-banner {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  background: radial-gradient(90% 90% at 50% 45%, rgba(20, 14, 30, 0.5) 0%, rgba(8, 6, 14, 0.82) 100%);
+}
+#ending-banner.show {
+  display: flex;
+  animation: eb-fade 7s ease both;
+}
+@keyframes eb-fade {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  88% { opacity: 1; }
+  100% { opacity: 0; }
+}
+#ending-banner .eb-inner { text-align: center; }
+#ending-banner .eb-kicker {
+  font-family: "Space Mono", monospace;
+  font-size: 13px;
+  letter-spacing: 0.5em;
+  text-transform: uppercase;
+  color: #ffd76a;
+  text-shadow: 0 0 14px rgba(255, 180, 60, 0.8);
+}
+#ending-banner .eb-title {
+  margin-top: 12px;
+  font-family: "Noto Serif KR", "Pretendard", serif;
+  font-weight: 700;
+  font-size: clamp(2.6rem, 8vw, 4.4rem);
+  background: linear-gradient(180deg, #fff3c4 0%, #ffd76a 50%, #e09c2d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(110, 60, 10, 0.5)) drop-shadow(0 0 26px rgba(255, 190, 80, 0.55));
+}
+#ending-banner .eb-sub {
+  margin-top: 16px;
+  font-family: "Pretendard", sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff6e0;
+  text-shadow: 0 1px 3px rgba(40, 20, 0, 0.7);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #quest-start.show,
+  #delivery-result.show,
+  #ending-banner.show,
+  #delivery-timer.danger { animation: none; }
+}

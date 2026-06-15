@@ -12,22 +12,31 @@ import { buildPlayer }  from './player';
 import { buildPOIs }    from './poi';
 import { buildClouds }  from './clouds';
 import { buildNature }  from './nature';
-import { buildWanderer, buildVillagers } from './wanderer';
+import { buildWanderer, buildVillagers, buildStoryNpcs } from './wanderer';
+import { buildOrchard } from './orchard';
 import { buildRoom, ROOM } from './room';
 import { buildGallery, GALLERY } from './gallery';
 import { buildParty, PARTY } from './party';
 import { buildPlaza } from './plaza';
-import { NPC_LINES_FIRST, NPC_LINES_AGAIN } from './dialogueLines';
+import { NPC_LINES_FIRST, NPC_LINES_AGAIN, GARAM_GALLERY_DONE } from './dialogueLines';
 import {
   initDialogue, openDialogue, advanceDialogue, endDialogue,
   moveChoice, pickChoice, pickSelected, dialogueActive, dialogueChoosing,
 } from './dialogue';
 import { initQuest, startHelperDialogue, pickupBox, useDumpster } from './quest';
+import { initInventory, toggleInventory, closeInventory, inventoryOpen, mapOpen, closeMap, updateMinimap } from './inventory';
+import {
+  initQuestChain, setStoryNpcs, setCube, setAboutBubble, updateQuestChain,
+  talkGuard, talkVendor, pickFruit, onAboutSeen, markBoardViewed, markFrameViewed,
+  tryDeliver, takePending, onGuestbookSubmit, showQuestStart,
+  onPlayerMoved, onInventoryOpened, galleryReadyToReport, reportGallery,
+} from './questChain';
 
 // ── 모듈 수준 렌더링 상태 ──
 let renderer, scene, camera, composer;
 let player, playerModel, npc, npcModel, wanderer;
 let villagers = [];
+let guard = null, vendor = null;
 
 // ── 실내(가람이의 방·스튜디오 갤러리) 상태 ──
 let indoor = null;         // { x, z, half | halfX/halfZ } — 실내 클램프 영역 (null = 실외)
@@ -116,6 +125,7 @@ async function init() {
   buildDecor(ctx);
   await buildPlaza(ctx);
   await buildNature(ctx);
+  await buildOrchard(ctx); // 과수원 (과일가게 사장 배달 퀘스트) — 나무 스캐터 뒤에 배치
 
   const pResult  = await buildPlayer(ctx);
   player      = pResult.player;
@@ -131,6 +141,7 @@ async function init() {
   buildWanderer(ctx)
     .then((w) => {
       wanderer = w;
+      setCube(w); // 순차 말풍선 — trash 단계 전엔 큐비 말풍선 숨김
       // 움직이는 NPC — follow 로 매 프레임 poi 좌표를 동기화 (updatePOIs).
       pois.push({
         id: 'helper', type: 'helper',
@@ -155,6 +166,26 @@ async function init() {
   buildParty(ctx)
     .then((r) => { partyDome = r.dome; })
     .catch((e) => console.warn('[party] load failed:', e));
+
+  // 스토리 NPC (경비·과일가게 사장) — 비동기 합류. 움직이므로 follow 로 좌표 동기화.
+  buildStoryNpcs(ctx)
+    .then((s) => {
+      guard = s.guard; vendor = s.vendor;
+      setStoryNpcs(guard, vendor); // 대화 중 플레이어를 바라보게(setTalking)
+      pois.push({
+        id: 'guard', type: 'guard',
+        x: guard.root.position.x, z: guard.root.position.z, r: 2.6,
+        follow: guard.root, object: guard.root,
+        prompt: '경비와 대화하기',
+      });
+      pois.push({
+        id: 'fruit-vendor', type: 'fruit-vendor',
+        x: vendor.root.position.x, z: vendor.root.position.z, r: 2.6,
+        follow: vendor.root, object: vendor.root,
+        prompt: '과일가게 사장과 대화하기',
+      });
+    })
+    .catch((e) => console.warn('[story-npc] load failed:', e));
 
   // 주민 NPC들 — 마찬가지로 비동기 합류 (실패한 모델은 buildVillagers 안에서 건너뜀).
   buildVillagers(ctx).then((vs) => {
@@ -181,6 +212,20 @@ async function init() {
     getWanderer: () => wanderer,
     onPoiRemoved: (poi) => { if (activePoi === poi) { activePoi = null; hidePrompt(); } },
   });
+  // 인벤토리(가방) — 열면 플레이어를 멈추고 프롬프트를 숨긴다.
+  initInventory({
+    onOpen: () => { frozen = true; input.f = input.b = input.l = input.r = 0; hidePrompt(); onInventoryOpened(); },
+    onClose: () => { frozen = false; if (activePoi) showPrompt(activePoi.prompt); },
+  });
+  // 퀘스트 체인 (경비 → 가람 전시회 → 과일 배달 → 큐비 → 엔딩)
+  initQuestChain({
+    scene, pois, obstacles,
+    getVillagers: () => villagers,
+    onPoiRemoved: (poi) => { if (activePoi === poi) { activePoi = null; hidePrompt(); } },
+  });
+  setAboutBubble(npc.userData.questBubble); // 가람 머리 위 안내 풍선 (훈련 통과 후 표시)
+  // 방명록 제출 → 엔딩 연출 (마지막 단계에서만)
+  window.__onGuestbookSubmit = onGuestbookSubmit;
 
   // ── 루프 시작 ──
   clock = new THREE.Clock();
@@ -286,6 +331,18 @@ function bindEvents() {
       else if (e.code === 'Escape') endDialogue();
       return;
     }
+    // 지도창이 열려 있으면 Esc/I 로 지도창만 먼저 닫는다 (인벤토리는 뒤에 남는다).
+    if (mapOpen()) {
+      if (e.code === 'Escape' || e.code === 'KeyI') closeMap();
+      return;
+    }
+    // 인벤토리 열림 중에는 I/Esc 로 닫기만 받고 나머지 입력은 차단.
+    if (inventoryOpen()) {
+      if (e.code === 'KeyI' || e.code === 'Escape') closeInventory();
+      return;
+    }
+    // I — 인벤토리(가방) 토글. 패널(고서)·시작 전엔 무시.
+    if (e.code === 'KeyI') { if (started && !panelOpen) toggleInventory(); return; }
     setKey(e.code, true);
     if (e.code === 'KeyE' || e.code === 'Enter') tryInteract();
     if (e.code === 'Space') { e.preventDefault(); tryJump(); }
@@ -379,13 +436,17 @@ function tryInteract() {
   else if (activePoi.id === 'work') enterGallery();
   else if (activePoi.id === 'guestbook') enterParty();
   else if (activePoi.type === 'guestbook-desk') openGuestbookPanel();
+  else if (activePoi.type === 'guard') talkGuard();
+  else if (activePoi.type === 'fruit-vendor') talkVendor();
+  else if (activePoi.type === 'fruit') pickFruit(activePoi);
   else if (activePoi.type === 'helper') startHelperDialogue();
-  else if (activePoi.type === 'villager') startVillagerDialogue(activePoi.villager);
+  // 배달 중인 주민이면 배달 처리, 아니면 일상 대화
+  else if (activePoi.type === 'villager') { if (!tryDeliver(activePoi)) startVillagerDialogue(activePoi.villager); }
   else if (activePoi.type === 'box') pickupBox(activePoi);
   else if (activePoi.type === 'dumpster') useDumpster();
   else if (activePoi.type === 'house-enter') enterRoom();
-  else if (activePoi.type === 'frame') openWorkPanel(activePoi.idx);
-  else if (activePoi.type === 'work-board') openWorkPanel();
+  else if (activePoi.type === 'frame') { markFrameViewed(activePoi.idx); openWorkPanel(activePoi.idx); }
+  else if (activePoi.type === 'work-board') { markBoardViewed(); openWorkPanel(); }
   else if (activePoi.type === 'house-exit' || activePoi.type === 'gallery-exit' || activePoi.type === 'party-exit') exitInterior();
   else openPanel(activePoi);
 }
@@ -394,7 +455,12 @@ function tryInteract() {
 //  자막 대화 (가람 소개 + 큐비 퀘스트 + 안내 메시지)
 // ─────────────────────────────────────────────
 // 가람 전용 — 첫 만남이면 풀 소개, 이후엔 짧은 인사. 대화가 끝나면 소개 패널.
+//  갤러리(액자 4개)를 다 보고 보고하러 왔으면 소개 대신 완료 대화 → 다음 단계로.
 function startDialogue(poi) {
+  if (galleryReadyToReport()) {
+    openDialogue(GARAM_GALLERY_DONE, '가람', { onEnd: reportGallery });
+    return;
+  }
   const lines = aboutVisits === 0
     ? NPC_LINES_FIRST
     : NPC_LINES_AGAIN[(aboutVisits - 1) % NPC_LINES_AGAIN.length];
@@ -515,6 +581,7 @@ function openPanel(poi) {
   input.f = input.b = input.l = input.r = 0;
   hidePrompt();
   if (poi.id === 'guestbook' && window.__initGuestbook) window.__initGuestbook();
+  if (poi.id === 'about') onAboutSeen(); // 소개(신원) 확인 → 경비 단계 통과 + 갤러리 퀘스트
   const body = poi.panel?.querySelector('.panel-body');
   if (body) body.scrollTop = 0;
 }
@@ -525,6 +592,12 @@ function closePanel() {
   overlay.classList.remove('open');
   panelOpen = false;
   setTimeout(() => { frozen = false; }, 120);
+  // 패널(소개·액자)을 닫은 직후 이어질 가람의 퀘스트 대사·시작 배너가 있으면 띄운다.
+  const next = takePending();
+  if (next) setTimeout(() => {
+    if (next.banner) showQuestStart(next.banner[0], next.banner[1]);
+    openDialogue(next.lines, next.name);
+  }, 180);
 }
 
 function showPrompt(text) {
@@ -560,6 +633,8 @@ function loop() {
   if (!inspect) updateCamera(dt, t);
   updatePOIs(t);
   updateAmbient(t);
+  if (started) updateQuestChain(dt); // 배달 타이머·타깃 화살표
+  if (started) updateMinimap(player.position.x, player.position.z, !indoor); // 우측 미니맵 내 위치
   updateLabels();
 
   if (composer && !panelOpen) composer.render();
@@ -576,6 +651,7 @@ function updateMovement(dt) {
 
   const moving = dir.lengthSq() > 0.0001;
   if (moving) {
+    onPlayerMoved(input); // 경비 적응 훈련 — WASD 4방향 사용 추적
     dir.normalize();
     const speed = input.shift ? RUN_SPEED : WALK_SPEED;
     vel.lerp(dir.multiplyScalar(speed), 0.18);
@@ -674,6 +750,7 @@ function updatePOIs(t) {
   }
   let nearest = null, best = Infinity;
   for (const p of pois) {
+    if (p.hidden) continue; // 숨겨진 POI(미수락 쓰레기 등)는 상호작용 대상 제외
     if (p.follow) { p.x = p.follow.position.x; p.z = p.follow.position.z; }
     const d = Math.hypot(player.position.x - p.x, player.position.z - p.z);
     p._dist = d;
@@ -775,7 +852,13 @@ window.__world = {
   obstacles: ()      => obstacles.map((o) => ({ x: +o.x.toFixed(1), z: +o.z.toFixed(1), r: o.r })),
   topView:   (h = 80) => { inspect = true; frozen = true; camera.position.set(0, h, 0.01); camera.lookAt(0, 0, 0); },
   lookAtPoint: (x, z, dist = 14, h = 7) => { inspect = true; frozen = true; const k = Math.hypot(x, z) || 1; camera.position.set(x + (x / k) * dist, h, z + (z / k) * dist); camera.lookAt(x, 3, z); },
+  freeCam: (cx, cy, cz, tx, ty, tz) => { inspect = true; frozen = true; camera.position.set(cx, cy, cz); camera.lookAt(tx, ty ?? 2, tz); },
   spinModel: (rad)   => { playerModel.rotation.y = rad; },
+
+
+
+
+
   npcCam: (dist = 3.2) => {
     inspect = true; frozen = true;
     npcModel.rotation.y = 0;

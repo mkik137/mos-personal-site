@@ -13,7 +13,7 @@ import { MAP_SCALE as S } from './constants';
 export const HOUSE_SPOTS = [
   { url: '/glb/building/Houses_SecondAge_1_Level2.glb', x: -19 * S, z: -12 * S, fw: 8.0, ry: 0.7,  r: 5.0 },
   { url: '/glb/building/Houses_SecondAge_2_Level2.glb', x:  19 * S, z: -12 * S, fw: 8.0, ry: -0.7, r: 5.0 },
-  { url: '/glb/building/Market_FirstAge_Level2.glb',    x:  -5 * S, z:  21 * S, fw: 8.0, ry: 2.9,  r: 5.0 },
+  { url: '/glb/building/Market_FirstAge_Level2.glb',    x:  -5 * S, z:  21 * S, fw: 8.0, ry: 3.05, r: 5.0 }, // 가판대 정면을 길/사장 쪽으로
   { url: '/glb/building/Storage_SecondAge_Level2.glb',  x:  22 * S, z:   2 * S, fw: 8.5, ry: -1.6, r: 5.3 },
 ];
 
@@ -30,7 +30,7 @@ export const PATHS = [
   { to: [14 * S, 7 * S],    curve: 0,     endShort: 5.5 }, // 방명록 집 (직선, 문 앞에서 끝)
   { to: [-19 * S, -12 * S], curve: -0.32, endShort: 4 },   // Houses_1 (곡선)
   { to: [19 * S, -12 * S],  curve: 0,     endShort: 4 },   // NE 집 (직선)
-  { to: [-5 * S, 21 * S],   curve: 0.38,  endShort: 4 },   // Market (곡선)
+  { to: [-5 * S, 21 * S],   curve: 0.38,  endShort: 2 },   // Market (곡선, 길이 가판대 앞까지 닿게)
   { to: [22 * S, 2 * S],    curve: -0.3,  endShort: 4.25 },// Storage (동쪽, 곡선)
 ];
 
@@ -66,6 +66,29 @@ export function pathCorridors() {
   return out;
 }
 
+// 길목 위 랜덤 배치 — 길(중심선) 점들에서 골라 약간의 측면 오프셋을 준다.
+//  (쓰레기 봉투처럼 "길에 굴러다니는" 오브젝트용). 광장/건물 근처 양끝 점은 제외.
+export function pathScatter({ count, sep = 2.5, latMax = 1.6, avoid = [], maxTries = 800 }): Array<{ x: number; z: number }> {
+  const pts = [];
+  for (const p of PATHS) {
+    const pp = pathPoints(p);
+    for (let i = 2; i < pp.length - 1; i++) pts.push(pp[i]); // 광장 끝·목적지 끝 제외
+  }
+  const placed = [];
+  for (let t = 0; t < maxTries && placed.length < count; t++) {
+    const base = pts[Math.floor(Math.random() * pts.length)];
+    if (!base) break;
+    const ang = Math.random() * Math.PI * 2;
+    const off = Math.random() * latMax;
+    const x = base[0] + Math.cos(ang) * off;
+    const z = base[1] + Math.sin(ang) * off;
+    if (placed.some((q) => Math.hypot(x - q.x, z - q.z) < sep)) continue;
+    if (avoid.some((a) => Math.hypot(x - a.x, z - a.z) < (a.r || 0) + 0.8)) continue;
+    placed.push({ x, z });
+  }
+  return placed;
+}
+
 // 흩뿌리기가 피해야 할 고정 구역 — 중앙 광장·플레이어 스폰·POI(가람/스튜디오/키오스크)·장식 건물.
 export function reservedZones() {
   return [
@@ -73,6 +96,7 @@ export function reservedZones() {
     { x: 0, z: -13 * S, r: 5.5 },    // NPC 가람
     { x: -17.5 * S, z: 14 * S, r: 8.0 }, // 스튜디오(집 건물, footprint ~12 — 주변 여유 확보)
     { x: 14 * S, z: 7 * S, r: 5 },    // 키오스크
+    { x: -16, z: 21, r: 7 },          // 과수원 (과일가게 사장 배달 퀘스트)
     ...HOUSE_SPOTS.map((h) => ({ x: h.x, z: h.z, r: h.r + 1.0 })),
   ];
 }

@@ -24,6 +24,7 @@ const PROJECTS = [
   { no: '01', hanzi: '漂流', name: 'Drift',  sub: 'SOUND VISUALIZER' },
   { no: '02', hanzi: '結',   name: 'Knot',   sub: 'NETWORK GRAPH' },
   { no: '03', hanzi: '餘白', name: 'Margin', sub: 'BRAND MICROSITE' },
+  { no: '04', hanzi: '巡',   name: 'Tour',   sub: 'WORLD ENGINE' },
 ];
 
 // 액자 그림 — 양피지 톤 캔버스에 번호·한자 표제·프로젝트명
@@ -100,7 +101,7 @@ export async function buildGallery(ctx): Promise<{ dome: THREE.Mesh }> {
 
   // ── 액자 — 북쪽 벽, 프로젝트당 1개 ──
   PROJECTS.forEach((p, i) => {
-    const fx = X + (i - 1) * 4.5;
+    const fx = X + (i - (PROJECTS.length - 1) / 2) * 4.0; // 벽 폭(±8) 안에 균등 배치
     const fz = Z - D / 2 + T / 2 + 0.07;
     const frame = new THREE.Group();
     const border = new THREE.Mesh(

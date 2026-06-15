@@ -4,7 +4,7 @@
 // ─────────────────────────────────────────────
 import * as THREE from 'three';
 import { WALK_R, ISLAND_R } from '../constants';
-import { HOUSE_SPOTS, reservedZones, pathCorridors, scatter } from '../layout';
+import { HOUSE_SPOTS, reservedZones, pathCorridors, scatter, pathScatter } from '../layout';
 import { loadGlbProp } from '../helpers/loadGlbProp';
 import { addInstanced } from '../helpers/tileField';
 
@@ -95,19 +95,19 @@ export async function buildNature(ctx): Promise<void> {
     prompt: '쓰레기통 사용하기',
   });
 
-  // ── 박스 — 게임기 링(13)과 숲(17) 사이 개방 지대에 랜덤 3개 ──
-  // 이 지대는 나무가 없고 항상 걸어서 닿을 수 있음. avoid 에 나무 obstacle 도 포함되어
-  // 경계 부근에서도 캐노피와 안 겹침.
-  const boxSpots = scatter({ count: 5, rMin: 12.5, rMax: 16, sep: 1.2, avoid: avoidNow() });
+  // ── 쓰레기 봉투 — 길목 위에 랜덤 배치. 큐비 퀘스트를 받기 전엔 숨김(hidden).
+  // 충돌 없음(길을 막지 않게) + POI 도 hidden 이라 수락 전엔 프롬프트가 안 뜬다.
+  // 수락하면 quest.ts 가 object/ring/POI 를 한꺼번에 드러낸다.
+  // 길 위에 둬야 하므로 길 회랑(pathCorridors)은 회피 대상에서 제외 — 건물·광장·나무만 피한다.
+  const boxSpots = pathScatter({ count: 5, sep: 4, latMax: 1.6, avoid: reservedZones().concat(obstacles) });
   let boxId = 0;
   for (const p of boxSpots) {
     const trash = await loadGlbProp(TRASH_URL, 0.6 + Math.random() * 0.25);
     trash.position.set(p.x, 0, p.z);
     trash.rotation.y = Math.random() * Math.PI * 2;
+    trash.visible = false; // 퀘스트 수락 전엔 안 보임
     scene.add(trash);
-    const ob = { x: p.x, z: p.z, r: 0.6 };
-    obstacles.push(ob);
-    // 퀘스트 안내 링 — 게임기 네온 링과 같은 스타일(펄스). 수락 전엔 숨김 (world.ts 가 켬).
+    // 퀘스트 안내 링 — 게임기 네온 링과 같은 스타일(펄스). 수락 전엔 숨김.
     const ring = new THREE.Mesh(
       new THREE.TorusGeometry(0.75, 0.05, 8, 28),
       new THREE.MeshBasicMaterial({ color: 0xffb13c }),
@@ -117,11 +117,11 @@ export async function buildNature(ctx): Promise<void> {
     ring.visible = false;
     scene.add(ring);
     pulsers.push({ mat: ring.material, base: 0xffb13c, phase: boxId * 0.8 });
-    // 줍기 퀘스트 대상 — world.ts(pickupBox)가 줍는 순간 poi/obstacle/링/씬에서 제거.
+    // 줍기 퀘스트 대상 — hidden 동안 updatePOIs 가 건너뜀. 수락 후 노출.
     pois.push({
-      id: `box-${boxId++}`, type: 'box',
+      id: `box-${boxId++}`, type: 'box', hidden: true,
       x: p.x, z: p.z, r: 2.4,
-      object: trash, obstacle: ob, ring,
+      object: trash, ring,
       prompt: '쓰레기 줍기',
     });
   }

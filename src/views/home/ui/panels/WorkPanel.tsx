@@ -79,6 +79,26 @@ export default function WorkPanel() {
           </div>
         </article>
 
+        <article className="proj" id="proj-3">
+          <div className="shot">
+            <span className="idx">04</span>
+            <span className="cap">巡 / TOUR — WEBGL · 2025</span>
+          </div>
+          <div className="meta">
+            <h3>巡 — Tour</h3>
+            <div className="role">INTERACTIVE WORLD ENGINE · 기획·디자인·개발</div>
+            <p>
+              지금 둘러보고 있는 이 섬. Three.js 로 직접 만든 3D 월드 엔진 위에 NPC·퀘스트·실내
+              씬을 얹은 인터랙티브 포트폴리오. 걸어다니며 작업과 경력을 만난다.
+            </p>
+            <div className="tags">
+              <span>Three.js</span>
+              <span>Next.js</span>
+              <span>FSD</span>
+            </div>
+          </div>
+        </article>
+
         <hr className="rule" />
 
         <p className="kicker" style={{ marginBottom: 14 }}>— 경력</p>

@@ -41,6 +41,8 @@
       save();
       nameIn.value = ''; msgIn.value = ''; msgCount.textContent = '0 / 280';
       render(true);
+      // 퀘스트 체인 엔딩 훅 — 마지막 단계에서 방명록을 남기면 엔딩 연출.
+      window.__onGuestbookSubmit?.();
     });
   };
 

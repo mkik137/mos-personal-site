@@ -7,8 +7,12 @@ import Hud from "./Hud";
 import InteractionPrompt from "./InteractionPrompt";
 import MobileControls from "./MobileControls";
 import WorldOverlay from "./WorldOverlay";
+import InventoryPanel from "./InventoryPanel";
+import MapWindow from "./MapWindow";
+import Minimap from "./Minimap";
 import NpcDialogue from "./NpcDialogue";
 import QuestBanner from "./QuestBanner";
+import QuestHud from "./QuestHud";
 import IntroScreen from "./IntroScreen";
 import Loader from "./Loader";
 
@@ -39,8 +43,12 @@ export default function HomePage() {
       <InteractionPrompt />
       <MobileControls />
       <WorldOverlay />
+      <InventoryPanel />
+      <MapWindow />
+      <Minimap />
       <NpcDialogue />
       <QuestBanner />
+      <QuestHud />
       <IntroScreen />
       <Loader />
     </>

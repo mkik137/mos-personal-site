@@ -3,9 +3,10 @@ import * as THREE from 'three';
 import { loadAvatar } from '@/entities/character';
 import { MAP_SCALE as S } from '../constants';
 import { loadGlbProp } from '../helpers/loadGlbProp';
+import { addQuestBubble } from '../helpers/questBubble';
 
 export async function buildPOIs(ctx) {
-  const { scene, obstacles, pois } = ctx;
+  const { scene, obstacles, pois, floaters } = ctx;
 
   // 세 개의 GLB(아바타·스튜디오·방명록)를 병렬로 로드해 초기 로딩을 단축.
   const [npcModel, studio, guestbook] = await Promise.all([
@@ -21,6 +22,8 @@ export async function buildPOIs(ctx) {
   npc.position.set(0, 0, -21.5);
   npc.add(npcModel);
   scene.add(npc);
+  // 가람 머리 위 퀘스트 안내 풍선 — 경비 튜토리얼을 마치면 questChain 이 켠다.
+  npc.userData.questBubble = addQuestBubble(npc, floaters, 2.9);
   _registerPoi(pois, {
     id: 'about', type: 'npc',
     x: 0, z: -21.5, r: 3.4,

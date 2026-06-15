@@ -26,6 +26,9 @@ export default function Hud() {
         <span className="k">
           <kbd>E</kbd> 상호작용
         </span>
+        <span className="k">
+          <kbd>I</kbd> 가방
+        </span>
       </div>
 
       <div className="hud" id="hud-dir">

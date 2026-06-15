@@ -10,6 +10,7 @@
 import * as THREE from 'three';
 import { loadAvatar } from '@/entities/character';
 import { VILLAGERS } from './villagers';
+import { drawQuestMark } from '../helpers/questMark';
 
 const FADE = 0.25;  // 클립 크로스페이드 시간
 
@@ -21,7 +22,7 @@ function lerpAngle(a, b, t) {
 }
 
 // 퀘스트 NPC 머리 위 말풍선 텍스처 (캔버스 드로잉)
-//  kind: 'dots'  → "···" (받을/진행 중인 퀘스트 있음)
+//  kind: 'dots'  → 펼친 책 📖 (받을/진행 중인 퀘스트 있음)
 //        'check' → 초록 체크 (완료 — 보고하러 오라는 표시)
 function makeBubbleTexture(kind) {
   const cv = document.createElement('canvas');
@@ -48,11 +49,8 @@ function makeBubbleTexture(kind) {
     c.moveTo(42, 37); c.lineTo(58, 50); c.lineTo(88, 21);
     c.stroke();
   } else {
-    // ··· 점
-    c.fillStyle = '#2a2a35';
-    for (const x of [40, 64, 88]) {
-      c.beginPath(); c.arc(x, 36, 6.5, 0, Math.PI * 2); c.fill();
-    }
+    // 퀘스트 마크 "?" (받으러 오라는 표시)
+    drawQuestMark(c, 64, 36, 46);
   }
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -61,7 +59,7 @@ function makeBubbleTexture(kind) {
 
 // NPC 한 명 생성 — anchor 중심 radius 안에서만 배회한다.
 //  height 는 시각적 키(머리 끝까지, 월드 단위) — 스키닝 반영 실측으로 정확히 맞춘다.
-async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, z: 0 }, radius = 8, start = anchor, floorY = 0, bubble = false }) {
+async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, z: 0 }, radius = 8, start = anchor, floorY = 0, bubble = false, faceYaw = null }) {
   const { scene, obstacles } = ctx;
 
   // loadAvatar 가 스킨드 메시 공통 처리(frustumCulled=false·그림자·wrapper)를 전담.
@@ -97,7 +95,7 @@ async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, 
   }
 
   root.position.set(start.x, floorY, start.z);
-  root.rotation.y = Math.random() * Math.PI * 2;
+  root.rotation.y = faceYaw ?? Math.random() * Math.PI * 2; // 고정 방향(가판대 등) 또는 랜덤
   scene.add(root);
 
   // 클립 이름은 "CharacterArmature|…|Walk" 형태 → 마지막 토큰으로 찾는다.
@@ -141,7 +139,8 @@ async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, 
   // 퀘스트 말풍선 — 머리 위에서 둥실거리고, 대화 중엔 숨긴다.
   // setBubble('dots' | 'check' | false) 로 표시 전환 (check = 퀘스트 완료 보고 표시).
   let bubbleSprite = null;
-  let bubbleOn = bubble;
+  // 말풍선은 처음엔 꺼둔다 — 표시는 questChain.refreshBubbles 가 단계에 맞춰 켠다(순차 표시).
+  let bubbleOn = false;
   let bubbleT = Math.random() * 10;
   const bubbleY = height + 0.5;
   const bubbleTex = {};
@@ -151,6 +150,7 @@ async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, 
     bubbleSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: bubbleTex.dots, transparent: true, depthWrite: false }));
     bubbleSprite.scale.set(0.78, 0.585, 1);
     bubbleSprite.position.set(0, bubbleY, 0);
+    bubbleSprite.visible = false;
     root.add(bubbleSprite);
   }
   const setBubble = (mode) => {
@@ -266,6 +266,32 @@ async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, 
   };
 
   return { root, update, setTalking, setBubble };
+}
+
+// ── 스토리 NPC — 경비(입구) · 과일가게 사장(과수원) ──
+//  기존 NPC GLB 를 다른 이름으로 재사용. 둘 다 머리 위 "···" 말풍선(퀘스트 표시).
+export async function buildStoryNpcs(ctx): Promise<{ guard: any; vendor: any }> {
+  const [guard, vendor] = await Promise.all([
+    createWanderer(ctx, {
+      url: '/glb/character/npc/Male Officer.glb',
+      height: 0.82, speed: 0.9,
+      // 분수대(중앙 0,0) 앞 — 덤스터(3.2,6.8)와 떨어진 남서쪽 광장. 보초처럼 좁게 배회하며
+      // 스폰(4.6,4.6) 쪽을 바라봐 입섬객을 맞이한다.
+      anchor: { x: -2, z: 5.6 }, radius: 1.2, start: { x: -2, z: 5.6 },
+      floorY: 0.02, bubble: true, faceYaw: Math.atan2(6.6, -1.0),
+    }),
+    createWanderer(ctx, {
+      url: '/glb/character/npc/Retail Worker.glb',
+      height: 0.8, speed: 0.8,
+      // 과일마켓 건물 앞 돌길 위 (가판대 지키듯 좁게 배회, 길 따라 광장 쪽을 바라봄)
+      anchor: { x: -7, z: 27 }, radius: 1.2, start: { x: -7, z: 27 },
+      floorY: 0.02, bubble: true, faceYaw: Math.atan2(7, -27),
+    }),
+  ]);
+  return {
+    guard:  { ...guard,  name: '경비' },
+    vendor: { ...vendor, name: '과일가게 사장' },
+  };
 }
 
 // 큐비 — 광장 배회 + 박스 치우기 퀘스트 대화 상대. 플레이어(2.0)보다 살짝 작게.

@@ -18,7 +18,7 @@ export const VILLAGERS = [
   },
   {
     url: '/glb/character/npc/Food Worker.glb',
-    anchor: { x: -6, z: 26 }, radius: 4, // 마켓 앞
+    anchor: { x: -1, z: 24 }, radius: 3, // 마켓 동편 (과일가게 사장 자리를 비켜 줌)
     name: '하나', prompt: '하나와 대화하기',
     lines: [
       ['오늘 마켓에 신선한 야채가 들어왔어요!', '저쪽 밭에서 바로 따온 거라 아삭아삭해요.'],

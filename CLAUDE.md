@@ -182,14 +182,28 @@ decor/              아케이드 게임기·뽑기·가챠·풍선
 plaza/              광장 소품(분수대·벤치·테두리) + pathDecor.ts(가로등·꽃·표지판·배럴)
 nature/             나무(InstancedMesh)·덤불·바위·밭 + 덤스터/쓰레기(퀘스트 오브젝트)
 poi/                고정 POI (가람 NPC·스튜디오·방명록 건물)
+orchard/            과수원 (사과나무 + 줍기용 사과 — 과일가게 사장 배달 퀘스트)
 player/             플레이어 캐릭터 (Mixamo 애니메이션)
 wanderer/           배회 NPC 공통 로직 + villagers.ts(주민 데이터 — 주민 추가는 여기만)
+                    + buildStoryNpcs(경비·과일가게 사장 — 기존 GLB 재사용)
+inventory.ts        I 키 가방 — 아이템 add/remove·스택 + 우측하단 미니맵(updateMinimap)
+                    + 마을 지도 캔버스(villageMapURL, 실제 월드 좌표) + 별도 지도창(openMap)
 dialogue.ts         자막 대화 엔진 (타이핑·예/아니오 선택지) — 훅 주입(initDialogue)
 dialogueLines.ts    모든 대사 텍스트 + 화자별 색상(SPEAKER_COLORS) — 대사 수정은 여기만
-quest.ts            큐비 쓰레기 퀘스트 (수락/줍기/배출/완료 배너) — 의존성 주입(initQuest)
+quest.ts            큐비 쓰레기 퀘스트 (수락/줍기/배출/보고) — 의존성 주입(initQuest)
+questChain.ts       경비→가람 전시회→과일 줍기·배달→큐비→엔딩 순차 게이트 체인.
+                    각 퀘스트는 "완료 → 준 NPC에게 보고(✓ 풍선)해야 다음 진행"(아래 패턴).
+                    배달 타임어택(50초·S/A/B)·시작/완료 배너·목표 HUD·타깃 화살표.
+                    의존성 주입(initQuestChain) — 단계 전환은 goStage, 말풍선은 refreshBubbles
 room/ gallery/ party/  실내 씬 3종 (가람이의 방·작업&경력 갤러리·방명록 파티룸)
-helpers/            loadGlbProp·tileField·exitDoor·interactMarker·makeTextPlane 등
+helpers/            loadGlbProp·tileField·exitDoor·interactMarker·questBubble·questMark
+                    (퀘스트 "?" 마크)·makeTextPlane 등
 ```
+
+> HUD(React, `views/home/ui`)는 엔진이 명령형으로 구동: `QuestHud`(#quest-objective 목표·
+> #delivery-timer/#delivery-result 배달·#ending-banner), `QuestBanner`(#quest-banner 완료 배너),
+> `Minimap`(#minimap), `MapWindow`(#map-window), `InventoryPanel`(#inventory) — 모두 정적 DOM 을
+> React 가 렌더하고 questChain/quest/inventory 가 클래스·텍스트를 토글한다 (CSS 가 literal 셀렉터인 이유).
 
 ### 핵심 패턴
 
@@ -205,6 +219,11 @@ helpers/            loadGlbProp·tileField·exitDoor·interactMarker·makeTextPl
 - **표면 높이**: 타일(광장·길) 윗면 = **0.02**. 광장 위 소품·NPC floorY 도 0.02 로 맞출 것.
 - **앰비언트 애니메이션**: `spinners`(회전)·`floaters`(보브)·`pulsers`(색 펄스)에
   push 만 하면 루프가 알아서 돌린다 — 디스코볼·물방울·말풍선·마커가 모두 이 방식.
+- **퀘스트 체인 "보고 후 진행"**: 퀘스트 목표를 채워도 바로 넘어가지 않고 `*Ready` 플래그를
+  세운 뒤, 준 NPC와 대화(보고)해야 `goStage` 로 다음 단계로 간다. 머리 위 퀘스트 마크는
+  `refreshBubbles` 가 단계로 결정 — **"?"(받기/진행 중) vs ✓(`check`, 완료 보고 대기)**.
+  정적 NPC(가람)는 `helpers/questBubble`, 배회 NPC는 `wanderer` 자체 말풍선('dots'→?·'check'→✓).
+  단계마다 시작 배너(`showQuestStart`)·완료 배너(`showQuestComplete`)를 띄운다.
 
 ### 검증 방법 (필수 습관)
 

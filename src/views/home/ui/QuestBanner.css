@@ -1,7 +1,7 @@
 /* ── 퀘스트 완료 배너 — 게임풍 중앙 연출 ───────── */
 #quest-banner {
   position: fixed;
-  left: 50%; top: 34%;
+  left: 50%; top: 44%; /* 시작 배너(#quest-start, 30%) 아래에 두어 겹침 방지 */
   transform: translate(-50%, -50%);
   z-index: 60;
   pointer-events: none;
