@@ -48,6 +48,8 @@ let galleryDome = null;    // 갤러리 배경 돔
 let partyDome = null;      // 방명록 파티룸 배경 돔
 let clock;
 let cloudGroup;
+let shadowFrozen = false; // 정적 그림자맵 1회 베이크 후 고정 여부
+let isMobile = false;     // 모바일 GPU 품질 분기 (AA·그림자해상도·블룸해상도)
 
 // ── 공유 컬렉션 (서브모듈로 ctx 객체로 전달) ──
 const obstacles = []; // {x,z,r}
@@ -85,9 +87,10 @@ const tmp2 = new THREE.Vector3();
 // ─────────────────────────────────────────────
 async function init() {
   const canvas = document.getElementById('scene-canvas');
-  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
+  isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
   renderer = new THREE.WebGLRenderer({
-    canvas, antialias: true, alpha: true, preserveDrawingBuffer: true,
+    // 모바일은 MSAA 를 끈다 — 타일드 GPU 에서 비싸고, 픽셀비율 캡(1.5)이 계단을 충분히 가린다.
+    canvas, antialias: !isMobile, alpha: true, preserveDrawingBuffer: true,
     powerPreference: 'high-performance', // 하이브리드 환경에서 외장 GPU 우선 요청
   });
   // 모바일은 GPU 부담·발열을 줄이려 픽셀 비율을 더 낮게 캡.
@@ -109,7 +112,9 @@ async function init() {
   const sun = new THREE.DirectionalLight(0xfff4e0, 1.5);
   sun.position.set(18, 34, 14);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048);
+  // 그림자는 1회 베이크 후 고정(shadowFrozen)이라 per-frame 비용은 없지만,
+  // 모바일은 텍스처 메모리·대역폭을 아끼려 해상도를 절반(1024)으로.
+  sun.shadow.mapSize.set(isMobile ? 1024 : 2048, isMobile ? 1024 : 2048);
   sun.shadow.camera.near = 1;
   sun.shadow.camera.far = 170;
   const s = 70;
@@ -249,8 +254,10 @@ async function loadBloom() {
     ]);
     const c = new EffectComposer(renderer);
     c.addPass(new RenderPass(scene, camera));
-    // 블룸 내부 렌더타깃을 절반 해상도로 — 화질 차이는 미미하고 포스트프로세싱 비용 ~1/4
-    c.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2), 0.6, 0.5, 0.92));
+    // 블룸 내부 렌더타깃 해상도 — 데스크톱 절반, 모바일은 1/4 로 더 낮춰 글로우는 유지하되
+    // 포스트프로세싱 비용을 추가로 ~1/4 절감. (계단/번짐 차이는 발광부라 거의 안 보임)
+    const bloomDiv = isMobile ? 4 : 2;
+    c.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth / bloomDiv, window.innerHeight / bloomDiv), 0.6, 0.5, 0.92));
     c.setSize(window.innerWidth, window.innerHeight);
     composer = c;
   } catch (e) {
@@ -644,6 +651,15 @@ function loop() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t  = clock.elapsedTime;
 
+  // 그림자맵 고정: 비동기 프롭(주민·실내 등)이 다 합류한 뒤(~1.5s) 정적 그림자를
+  // 마지막으로 1회 베이크하고, 이후 매 프레임 그림자 패스를 멈춘다. 씬의 모든
+  // 그림자 캐스터가 정적(플레이어 그림자는 blob 으로 대체)이라 시각 변화는 없다.
+  if (!shadowFrozen && t > 1.5) {
+    renderer.shadowMap.needsUpdate = true; // 이 프레임에 마지막 베이크
+    renderer.shadowMap.autoUpdate = false; // 다음 프레임부터 그림자 패스 정지
+    shadowFrozen = true;
+  }
+
   if (started && !frozen) updateMovement(dt);
   if (playerModel?.userData?.update) playerModel.userData.update(dt);
   wanderer?.update(dt, player?.position);
@@ -679,15 +695,16 @@ function updateMovement(dt) {
 
   player.position.addScaledVector(vel, dt);
 
-  // 충돌 처리
+  // 충돌 처리 — 제곱거리로 먼 obstacle 을 sqrt 없이 제외하고, 닿는 쌍만 sqrt.
   for (const o of obstacles) {
     const dx = player.position.x - o.x, dz = player.position.z - o.z;
-    const dist = Math.hypot(dx, dz), min = o.r + 0.6;
-    if (dist < min && dist > 0.0001) {
-      const push = min - dist;
-      player.position.x += (dx / dist) * push;
-      player.position.z += (dz / dist) * push;
-    }
+    const min = o.r + 0.6;
+    const d2 = dx * dx + dz * dz;
+    if (d2 >= min * min || d2 < 1e-8) continue;
+    const dist = Math.sqrt(d2);
+    const push = min - dist;
+    player.position.x += (dx / dist) * push;
+    player.position.z += (dz / dist) * push;
   }
 
   // 경계 — 실내에선 그 공간 안, 실외에선 섬 안
@@ -808,11 +825,21 @@ function updateLabels() {
     if (!p.el) continue;
     tmp.set(p.x, p.labelY || 3.2, p.z);
     tmp.project(camera);
-    if (tmp.z > 1) { p.el.style.opacity = '0'; continue; }
+    if (tmp.z > 1) {
+      if (p._vis !== false) { p.el.style.opacity = '0'; p._vis = false; } // 카메라 뒤 — 1회만 숨김
+      continue;
+    }
+    // transform 은 카메라를 따라 매 프레임 갱신 (부드러운 추적).
     p.el.style.transform = `translate(${(tmp.x * 0.5 + 0.5) * w}px, ${(-tmp.y * 0.5 + 0.5) * h}px) translate(-50%, -100%)`;
     const near = p._dist !== undefined && p._dist < p.r;
-    p.el.style.opacity = near ? '1' : '0.82';
-    p.el.querySelector('.chip').style.borderColor = near ? `var(--poi-${p.id})` : 'var(--line)';
+    // opacity·테두리 색은 근접 상태가 바뀔 때만 DOM 에 쓴다. (매 프레임 querySelector 제거)
+    if (p._near !== near || p._vis === false) {
+      p.el.style.opacity = near ? '1' : '0.82';
+      if (!p._chip) p._chip = p.el.querySelector('.chip');
+      if (p._chip) p._chip.style.borderColor = near ? `var(--poi-${p.id})` : 'var(--line)';
+      p._near = near;
+    }
+    p._vis = true;
   }
 }
 

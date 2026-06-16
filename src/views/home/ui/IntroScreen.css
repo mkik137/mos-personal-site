@@ -25,6 +25,12 @@
 #intro .keys { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 28px 0 30px; }
 #intro .keys .item { display: flex; align-items: center; gap: 8px; font-family: 'Space Mono', monospace; font-size: 12px; color: #4a5568; }
 #intro .keys kbd { background: #fff; border: 1px solid rgba(0,0,0,0.1); border-bottom-width: 2px; border-radius: 6px; padding: 4px 9px; font-family: 'Space Mono', monospace; font-size: 12px; color: var(--ink); }
+/* 기본은 키보드(데스크톱) 안내만, 터치 기기에선 조이스틱/버튼 안내로 교체 */
+#intro .keys-touch { display: none; }
+@media (pointer: coarse) {
+  #intro .keys-desktop { display: none; }
+  #intro .keys-touch { display: flex; }
+}
 #intro .start {
   display: inline-flex; align-items: center; gap: 10px;
   background: linear-gradient(135deg, #ff5b35, #ff2bd6); color: #fff; border: 0; border-radius: 999px;

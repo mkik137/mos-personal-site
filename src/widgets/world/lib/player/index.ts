@@ -9,6 +9,10 @@ export async function buildPlayer({ scene }) {
   scene.add(player);
 
   const playerModel = await loadGlbCharacter();
+  // 실시간 그림자 대신 아래 blob 그림자만 사용한다. 플레이어는 유일한 "움직이는"
+  // 그림자 캐스터라, 이걸 끄면 씬의 모든 그림자 캐스터가 정적이 되어
+  // 그림자맵을 1회만 베이크하고 고정(world.ts shadowMap.autoUpdate=false)할 수 있다.
+  playerModel.traverse((o) => { if (o.isMesh) o.castShadow = false; });
   player.add(playerModel);
 
   const blob = new THREE.Mesh(

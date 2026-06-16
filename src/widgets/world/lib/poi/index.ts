@@ -4,6 +4,7 @@ import { loadAvatar } from '@/entities/character';
 import { MAP_SCALE as S } from '../constants';
 import { loadGlbProp } from '../helpers/loadGlbProp';
 import { addQuestBubble } from '../helpers/questBubble';
+import { addNameTag } from '../helpers/nameTag';
 
 export async function buildPOIs(ctx) {
   const { scene, obstacles, pois, floaters } = ctx;
@@ -22,8 +23,10 @@ export async function buildPOIs(ctx) {
   npc.position.set(0, 0, -21.5);
   npc.add(npcModel);
   scene.add(npc);
-  // 가람 머리 위 퀘스트 안내 풍선 — 경비 튜토리얼을 마치면 questChain 이 켠다.
-  npc.userData.questBubble = addQuestBubble(npc, floaters, 2.9);
+  // 가람 머리 위 이름표 (다른 NPC 와 동일 방식) — 건물 칩 대신.
+  addNameTag(npc, '가람', 2.35, 0.3);
+  // 가람 머리 위 퀘스트 안내 풍선 — 이름표 위로 올림. 경비 튜토리얼을 마치면 questChain 이 켠다.
+  npc.userData.questBubble = addQuestBubble(npc, floaters, 3.2);
   _registerPoi(pois, {
     id: 'about', type: 'npc',
     x: 0, z: -21.5, r: 3.4,

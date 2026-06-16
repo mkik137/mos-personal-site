@@ -11,7 +11,7 @@ export default function IntroScreen() {
           오신 걸 환영해요
         </h1>
         <p>작은 섬을 걸어다니며 가람을 만나고, 작업 &amp; 경력과 방명록을 둘러보세요.</p>
-        <div className="keys">
+        <div className="keys keys-desktop">
           <span className="item">
             <kbd>W</kbd>
             <kbd>A</kbd>
@@ -29,6 +29,23 @@ export default function IntroScreen() {
           </span>
           <span className="item">
             <kbd>E</kbd> 대화 / 입장
+          </span>
+        </div>
+        <div className="keys keys-touch">
+          <span className="item">
+            <kbd>조이스틱</kbd> 이동
+          </span>
+          <span className="item">
+            <kbd>⤒</kbd> 점프
+          </span>
+          <span className="item">
+            <kbd>✋</kbd> 대화 / 입장
+          </span>
+          <span className="item">
+            <kbd>🎒</kbd> 가방
+          </span>
+          <span className="item">
+            <kbd>드래그</kbd> 시점 회전
           </span>
         </div>
         <button className="start" id="start-btn">

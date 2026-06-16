@@ -11,6 +11,7 @@ import * as THREE from 'three';
 import { loadAvatar } from '@/entities/character';
 import { VILLAGERS } from './villagers';
 import { drawQuestMark } from '../helpers/questMark';
+import { addNameTag } from '../helpers/nameTag';
 
 const FADE = 0.25;  // 클립 크로스페이드 시간
 
@@ -59,7 +60,7 @@ function makeBubbleTexture(kind) {
 
 // NPC 한 명 생성 — anchor 중심 radius 안에서만 배회한다.
 //  height 는 시각적 키(머리 끝까지, 월드 단위) — 스키닝 반영 실측으로 정확히 맞춘다.
-async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, z: 0 }, radius = 8, start = anchor, floorY = 0, bubble = false, faceYaw = null }) {
+async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, z: 0 }, radius = 8, start = anchor, floorY = 0, bubble = false, faceYaw = null, name = null }) {
   const { scene, obstacles } = ctx;
 
   // loadAvatar 가 스킨드 메시 공통 처리(frustumCulled=false·그림자·wrapper)를 전담.
@@ -97,6 +98,9 @@ async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, 
   root.position.set(start.x, floorY, start.z);
   root.rotation.y = faceYaw ?? Math.random() * Math.PI * 2; // 고정 방향(가판대 등) 또는 랜덤
   scene.add(root);
+
+  // 머리 위 이름표 (있으면) — 빌보드 Sprite. 퀘스트 말풍선은 이 위에 띄운다.
+  if (name) addNameTag(root, name, height + 0.22, 0.26);
 
   // 클립 이름은 "CharacterArmature|…|Walk" 형태 → 마지막 토큰으로 찾는다.
   const animations = root.userData.animations || [];
@@ -142,7 +146,7 @@ async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, 
   // 말풍선은 처음엔 꺼둔다 — 표시는 questChain.refreshBubbles 가 단계에 맞춰 켠다(순차 표시).
   let bubbleOn = false;
   let bubbleT = Math.random() * 10;
-  const bubbleY = height + 0.5;
+  const bubbleY = height + 0.78; // 이름표(머리 위) 위로 올려 겹치지 않게
   const bubbleTex = {};
   if (bubble) {
     bubbleTex.dots = makeBubbleTexture('dots');
@@ -169,6 +173,7 @@ async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, 
   let target = null;
   let waveCooldown = 0;                     // 인사 남발 방지
   let talking = false;                      // 대화 중 — 배회를 멈추고 플레이어를 바라봄
+  let animAccum = 0;                         // 애니메이션 LOD — 먼 NPC 의 누적 dt
 
   const setTalking = (v) => {
     talking = v;
@@ -187,7 +192,15 @@ async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, 
   };
 
   const update = (dt, playerPos) => {
-    mixer.update(dt);
+    const pDist = playerPos ? Math.hypot(playerPos.x - root.position.x, playerPos.z - root.position.z) : Infinity;
+    // 애니메이션 LOD — 멀리 있는 NPC 는 스키닝(skeleton) 갱신을 ~10fps 로 낮춘다.
+    // 이동·상태 머신은 매 프레임 그대로 돌아 움직임은 부드럽고, 멀어서 팔다리 동작은 안 보인다.
+    if (pDist > 20) {
+      animAccum += dt;
+      if (animAccum >= 0.1) { mixer.update(animAccum); animAccum = 0; }
+    } else {
+      mixer.update(dt + animAccum); animAccum = 0; // 가까워지면 밀린 시간을 한 번에 반영
+    }
     waveCooldown = Math.max(0, waveCooldown - dt);
 
     if (bubbleSprite) {
@@ -201,8 +214,7 @@ async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, 
       return;
     }
 
-    // 플레이어가 가까이 오면: Wave 클립이 있으면 하던 일을 멈추고 손 인사
-    const pDist = playerPos ? Math.hypot(playerPos.x - root.position.x, playerPos.z - root.position.z) : Infinity;
+    // 플레이어가 가까이 오면: Wave 클립이 있으면 하던 일을 멈추고 손 인사 (pDist 는 위에서 계산)
     if (state !== 'wave' && pDist < 3 && waveCooldown === 0 && waveAction) {
       state = 'wave';
       timer = waveAction.getClip().duration + FADE;
@@ -247,14 +259,15 @@ async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, 
     root.position.x += (dx / dist) * speed * dt;
     root.position.z += (dz / dist) * speed * dt;
 
-    // 장애물 밀어내기 (플레이어와 동일한 방식)
+    // 장애물 밀어내기 (플레이어와 동일한 방식) — 제곱거리 broad-phase 로 닿는 쌍만 sqrt.
     for (const o of obstacles) {
       const ox = root.position.x - o.x, oz = root.position.z - o.z;
-      const d = Math.hypot(ox, oz), min = (o.r || 0) + 0.5;
-      if (d < min && d > 0.0001) {
-        root.position.x += (ox / d) * (min - d);
-        root.position.z += (oz / d) * (min - d);
-      }
+      const min = (o.r || 0) + 0.5;
+      const d2 = ox * ox + oz * oz;
+      if (d2 >= min * min || d2 < 1e-8) continue;
+      const d = Math.sqrt(d2);
+      root.position.x += (ox / d) * (min - d);
+      root.position.z += (oz / d) * (min - d);
     }
     // 배회 반경 밖으로 나가지 않게 (앵커 기준)
     const ax = root.position.x - anchor.x, az = root.position.z - anchor.z;
@@ -274,7 +287,7 @@ export async function buildStoryNpcs(ctx): Promise<{ guard: any; vendor: any }> 
   const [guard, vendor] = await Promise.all([
     createWanderer(ctx, {
       url: '/glb/character/npc/Male Officer.glb',
-      height: 0.82, speed: 0.9,
+      height: 0.82, speed: 0.9, name: '경비',
       // 분수대(중앙 0,0) 앞 — 덤스터(3.2,6.8)와 떨어진 남서쪽 광장. 보초처럼 좁게 배회하며
       // 스폰(4.6,4.6) 쪽을 바라봐 입섬객을 맞이한다.
       anchor: { x: -2, z: 5.6 }, radius: 1.2, start: { x: -2, z: 5.6 },
@@ -282,7 +295,7 @@ export async function buildStoryNpcs(ctx): Promise<{ guard: any; vendor: any }> 
     }),
     createWanderer(ctx, {
       url: '/glb/character/npc/Retail Worker.glb',
-      height: 0.8, speed: 0.8,
+      height: 0.8, speed: 0.8, name: '과일가게 사장',
       // 과일마켓 건물 앞 돌길 위 (가판대 지키듯 좁게 배회, 길 따라 광장 쪽을 바라봄)
       anchor: { x: -7, z: 27 }, radius: 1.2, start: { x: -7, z: 27 },
       floorY: 0.02, bubble: true, faceYaw: Math.atan2(7, -27),
@@ -298,7 +311,7 @@ export async function buildStoryNpcs(ctx): Promise<{ guard: any; vendor: any }> 
 export async function buildWanderer(ctx) {
   return createWanderer(ctx, {
     url: '/glb/character/npc/Cube Guy.glb',
-    height: 0.85, speed: 1.4,
+    height: 0.85, speed: 1.4, name: '큐비',
     anchor: { x: 0, z: 0 }, radius: 8,
     start: { x: -6, z: 2.5 }, floorY: 0.02, // 분수대 밖에서 시작 (광장 타일 윗면)
     bubble: true, // 퀘스트 NPC 표시 — 머리 위 "···" 말풍선

@@ -16,17 +16,17 @@
 }
 body.touch #joy { display: block; }
 
-/* mobile jump button */
+/* mobile jump button — 점프하는 사람 아이콘 (public/icons/jump.svg) */
 #jump-btn {
   position: fixed; right: 28px; bottom: 36px; z-index: 25;
   width: 76px; height: 76px; border-radius: 999px;
   display: none; place-items: center;
   background: var(--accent); color: #fff; border: 0;
-  font-size: 30px; line-height: 1;
   box-shadow: 0 8px 22px rgba(255,91,53,0.4);
   cursor: pointer; touch-action: none; user-select: none;
   transition: transform 0.12s ease;
 }
+#jump-btn .jb-svg { width: 42px; height: 42px; display: block; pointer-events: none; }
 #jump-btn:active { transform: scale(0.9); }
 body.touch #jump-btn { display: grid; }
 

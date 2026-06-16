@@ -61,11 +61,13 @@
 @media (prefers-reduced-motion: reduce) {
   #minimap .mm-dot { animation: none; }
 }
-/* 터치/모바일: 우측 하단엔 점프 버튼이 있으므로 미니맵을 상단으로 옮긴다(키 도움말도 숨겨짐) */
+/* 터치/모바일: 미니맵을 좌측 상단으로 옮긴다 (우측·하단은 조작 버튼·조이스틱 영역).
+   건물 색상점은 inventory.ts 에서 미니맵용 이미지에 안 그려 깔끔하게 표시. */
 body.touch #minimap {
-  bottom: auto;
   top: 12px;
-  right: 12px;
+  left: 12px;
+  right: auto;
+  bottom: auto;
 }
 @media (max-width: 560px) {
   #minimap { width: clamp(84px, 26vw, 112px); height: clamp(84px, 26vw, 112px); right: 12px; bottom: 12px; }

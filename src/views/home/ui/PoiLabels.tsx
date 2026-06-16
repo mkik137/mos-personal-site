@@ -3,12 +3,7 @@ import "./PoiLabels.css";
 export default function PoiLabels() {
   return (
     <div id="labels">
-      <div className="poi-label" data-poi="about">
-        <span className="chip">
-          <span className="dot" /> 가람 <span className="sub">SAY HELLO</span>
-        </span>
-        <span className="tail" />
-      </div>
+      {/* 가람은 NPC 라 머리 위 이름표(3D)로 표시 — 건물용 떠다니는 칩은 두지 않는다. */}
       <div className="poi-label" data-poi="work">
         <span className="chip">
           <span className="dot" /> 작업 &amp; 경력 <span className="sub">WORK</span>

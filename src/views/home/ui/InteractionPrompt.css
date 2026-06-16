@@ -25,3 +25,14 @@
   display: grid; place-items: center;
   border-radius: 999px;
 }
+
+/* 모바일/터치: 하단은 조이스틱·버튼이 가리므로 상호작용 토스트를 상단으로 옮긴다.
+   조작은 화면의 ✋ 버튼으로 하므로 키보드용 E 칩은 숨기고, 위에서 슬라이드-인 한다. */
+body.touch #prompt {
+  top: 72px;
+  bottom: auto;
+  padding: 11px 20px;
+  transform: translateX(-50%) translateY(-16px);
+}
+body.touch #prompt.show { transform: translateX(-50%) translateY(0); }
+body.touch #prompt .pkey { display: none; }

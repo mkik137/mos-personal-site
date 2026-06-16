@@ -51,3 +51,5 @@ body.touch #hud-help { display: none; }
 #hud-dir .pin.b { background: var(--poi-work); box-shadow: 0 0 7px var(--poi-work); }
 #hud-dir .pin.g { background: var(--poi-guestbook); box-shadow: 0 0 7px var(--poi-guestbook); }
 #hud-dir .pin.h { background: var(--poi-garam-house); box-shadow: 0 0 7px var(--poi-garam-house); }
+/* 좌하단 건물 안내 목록은 표시하지 않는다 (퀘스트 로그·미니맵과 정보 중복). 웹·모바일 공통. */
+#hud-dir { display: none; }

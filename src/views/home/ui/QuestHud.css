@@ -1,49 +1,122 @@
 /* ── 퀘스트 체인 HUD ───────────────────────────── */
 
-/* 현재 목표 — 상단 중앙, 항상 표시 */
-#quest-objective {
+/* 퀘스트 로그 — 중앙 좌측. 메인 퀘스트 목록 + 현재 진행 내용을 함께 보여준다. */
+#quest-log {
   position: fixed;
-  top: 64px;
-  left: 50%;
-  transform: translateX(-50%) translateY(-8px);
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%) translateX(-10px);
   z-index: 24;
   display: none;
-  align-items: center;
-  gap: 9px;
-  max-width: min(90vw, 520px);
-  padding: 9px 16px;
-  border-radius: 999px;
+  flex-direction: column;
+  width: 232px;
+  max-width: 72vw;
+  padding: 13px 15px;
+  border-radius: 16px;
   font-family: "Pretendard", sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
   color: #fff6e9;
-  background: linear-gradient(180deg, rgba(40, 30, 16, 0.82) 0%, rgba(28, 20, 10, 0.86) 100%);
+  background: linear-gradient(180deg, rgba(40, 30, 16, 0.84) 0%, rgba(28, 20, 10, 0.88) 100%);
   border: 1px solid rgba(255, 209, 122, 0.4);
-  box-shadow: 0 8px 24px rgba(10, 6, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 28px rgba(10, 6, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
-#quest-objective.show {
+#quest-log.show {
   display: flex;
   opacity: 1;
-  transform: translateX(-50%) translateY(0);
+  transform: translateY(-50%) translateX(0);
 }
-#quest-objective .qo-pin {
-  width: 7px;
-  height: 7px;
-  border-radius: 999px;
-  background: #ffd76a;
+/* 헤더 */
+#quest-log .ql-head {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+  color: #ffd76a; text-transform: uppercase;
+  margin-bottom: 10px;
+}
+/* 퀘스트 목록 */
+#quest-log .ql-list {
+  list-style: none; margin: 0 0 11px; padding: 0;
+  display: flex; flex-direction: column; gap: 7px;
+}
+/* 선택 퀘스트 구분 라벨 */
+#quest-log .ql-sub {
+  list-style: none;
+  margin-top: 4px; padding-top: 7px;
+  border-top: 1px dashed rgba(255, 209, 122, 0.22);
+  font-size: 9.5px; letter-spacing: 0.14em; text-transform: uppercase;
+  color: rgba(255, 209, 122, 0.7);
+}
+#quest-log .ql-item {
+  display: flex; align-items: center; gap: 9px;
+  font-size: 12.5px; line-height: 1.2;
+  color: rgba(255, 246, 233, 0.42);
+  transition: color 0.25s ease;
+}
+#quest-log .ql-mark {
+  width: 14px; height: 14px; border-radius: 999px; flex: none;
+  border: 1.5px solid currentColor; position: relative;
+}
+/* 진행 중 — 금색 강조 + 펄스 */
+#quest-log .ql-item.active { color: #fff6e9; font-weight: 700; }
+#quest-log .ql-item.active .ql-mark {
+  border-color: #ffd76a; background: #ffd76a;
   box-shadow: 0 0 8px #ffd76a;
-  flex: none;
   animation: qo-pulse 1.6s ease-in-out infinite;
 }
+/* 완료 — 초록 체크 + 취소선 */
+#quest-log .ql-item.done { color: rgba(255, 246, 233, 0.6); }
+#quest-log .ql-item.done .ql-title { text-decoration: line-through; opacity: 0.85; }
+#quest-log .ql-item.done .ql-mark { border-color: #6fe0a0; background: #6fe0a0; }
+#quest-log .ql-item.done .ql-mark::after {
+  content: "✓"; position: absolute; inset: 0;
+  display: grid; place-items: center;
+  font-size: 9px; font-weight: 900; color: #14502f;
+}
+/* 잠김(미진행) */
+#quest-log .ql-item.locked { color: rgba(255, 246, 233, 0.3); }
+/* 현재 진행 내용 */
+#quest-log .ql-current {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding-top: 11px;
+  border-top: 1px solid rgba(255, 209, 122, 0.2);
+  font-size: 12.5px; font-weight: 600; line-height: 1.36;
+  color: #fff6e9;
+}
+#quest-log .ql-current .qo-pin {
+  width: 7px; height: 7px; border-radius: 999px; flex: none;
+  margin-top: 4px;
+  background: #ffd76a; box-shadow: 0 0 8px #ffd76a;
+  animation: qo-pulse 1.6s ease-in-out infinite;
+}
+#quest-log .ql-current .qo-text { min-width: 0; }
 @keyframes qo-pulse {
   0%, 100% { opacity: 0.55; }
   50% { opacity: 1; }
 }
-body.touch #quest-objective { top: 14px; }
+/* 모바일: 큰 좌측 패널은 화면을 가려 불편하므로, 예전처럼 상단 우측에 현재 목표만
+   컴팩트한 띠로 표시한다 (목록·헤더는 숨김). 미니맵(좌상단)과 겹치지 않게 우측 정렬. */
+body.touch #quest-log {
+  top: 12px;
+  left: auto;
+  right: 12px;
+  bottom: auto;
+  transform: none;
+  flex-direction: row;
+  width: auto;
+  max-width: min(64vw, 320px);
+  padding: 8px 13px;
+  border-radius: 999px;
+}
+body.touch #quest-log.show { transform: none; }
+body.touch #quest-log .ql-head,
+body.touch #quest-log .ql-list { display: none; }
+body.touch #quest-log .ql-current {
+  padding-top: 0;
+  border-top: none;
+  font-size: 12px;
+  line-height: 1.34;
+}
 
 /* 배달 타임어택 카운트다운 — 상단 중앙(목표 아래) */
 #delivery-timer {
@@ -167,6 +240,11 @@ body.touch #quest-objective { top: 14px; }
   color: rgba(127, 227, 255, 0.7);
   letter-spacing: -2px;
 }
+/* 모바일: 시작 배너 글자 크기를 줄이고 장식 선을 짧게 해 좁은 화면에서 넘치지 않게 */
+body.touch #quest-start .qs-title { font-size: clamp(1.5rem, 7.4vw, 2.2rem); }
+body.touch #quest-start .qs-sub { font-size: 13px; padding: 0 8px; }
+body.touch #quest-start .qs-sub::before,
+body.touch #quest-start .qs-sub::after { content: "──"; margin: 0 7px; }
 
 /* 배달 등급 팝(S/A/B) — 중앙 연출 */
 #delivery-result {
