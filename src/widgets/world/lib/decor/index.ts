@@ -1,12 +1,39 @@
 // @ts-nocheck
+import * as THREE from 'three';
 import { COL } from '../constants';
 import { pathCorridors } from '../layout';
+import { makeTextPlane } from '../helpers/makeTextPlane';
 import { addArcadeCabinet } from './arcadeCabinet';
 import { addClawMachine } from './clawMachine';
 import { addGachapon } from './gachapon';
 import { addBalloon } from './balloon';
 
 function faceCenter(x, z) { return Math.atan2(-x, -z); }
+
+// 첫 번째 게임기를 'GAME ISLAND' 포털로 표시 — 빛나는 표지 + 베이스 링 + 상호작용 POI.
+function markPortalCabinet({ scene, pois, floaters, pulsers }, x, z) {
+  // 머리 위 떠다니는 안내 표지
+  const sign = makeTextPlane('🎮 다른 섬', 2.4, 0.7, '#21f0ff');
+  sign.position.set(x, 4.2, z);
+  scene.add(sign);
+  floaters.push({ mesh: sign, baseY: 4.2, amp: 0.16, phase: 0.3, speed: 1.4 });
+
+  // 발광 베이스 링 (포털 표시)
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(1.5, 0.12, 8, 40),
+    new THREE.MeshBasicMaterial({ color: COL.magenta }),
+  );
+  ring.position.set(x, 0.06, z);
+  ring.rotation.x = Math.PI / 2;
+  scene.add(ring);
+  pulsers.push({ mat: ring.material, base: COL.magenta, phase: 0.8, lo: 0.4, hi: 1.0 });
+
+  pois.push({
+    id: 'arcade-portal', type: 'arcade-portal',
+    x, z, r: 2.4,
+    prompt: 'GAME ISLAND 으로 이동',
+  });
+}
 
 export function buildDecor(ctx) {
   const { obstacles } = ctx;
@@ -38,6 +65,7 @@ export function buildDecor(ctx) {
         sprites[i % sprites.length],
         i,
       );
+      if (i === 0) markPortalCabinet(ctx, m.x, m.z); // 첫 게임기 = GAME ISLAND 포털
     } else if (i < 11) {
       addClawMachine(ctx, m.x, m.z, rot, i === 9 ? COL.hotpink : COL.cyan);
     } else {

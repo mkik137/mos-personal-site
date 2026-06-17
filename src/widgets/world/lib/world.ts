@@ -17,6 +17,7 @@ import { buildOrchard } from './orchard';
 import { buildRoom, ROOM } from './room';
 import { buildGallery, GALLERY } from './gallery';
 import { buildParty, PARTY } from './party';
+import { buildIsland2, ISLAND2_CENTER, ISLAND2_R, ISLAND2_WALK, ISLAND2_SPAWN } from './island2';
 import { buildPlaza } from './plaza';
 import { NPC_LINES_FIRST, NPC_LINES_AGAIN, GARAM_GALLERY_DONE } from './dialogueLines';
 import {
@@ -54,9 +55,28 @@ let isMobile = false;     // 모바일 GPU 품질 분기 (AA·그림자해상도
 // ── 공유 컬렉션 (서브모듈로 ctx 객체로 전달) ──
 const obstacles = []; // {x,z,r}
 const pois      = []; // {id, x, z, r, el, prompt, panel, object, type}
-const spinners  = []; // {mesh, speed}
-const floaters  = []; // {mesh, baseY, amp, phase, speed}
-const pulsers   = []; // {mat, base, phase, lo?, hi?}
+const spinners  = []; // {mesh, speed, region?}
+const floaters  = []; // {mesh, baseY, amp, phase, speed, region?}
+const pulsers   = []; // {mat, base, phase, lo?, hi?, region?}
+
+// ── region 게이팅 ──────────────────────────────────────────────
+// 애니메이터(spinners/floaters/pulsers)와 배회 NPC(wanderer/villagers)는 화면에
+// 안 보여도 매 프레임 업데이트된다. 멀리 둔 별도 섬을 추가하면 그 섬의 움직임이
+// 안 보일 때도 CPU 를 계속 잡아먹으므로, 각 아이템에 소속 region 을 태그해 두고
+// "현재 활성 region 인 것만" 업데이트한다.
+//   • region 없음(undefined) → 글로벌 (구름·하늘처럼 항상 돈다)
+//   • region 있음            → activeRegion 과 일치할 때만 돈다
+// 기존 섬/실내는 모두 'island' 로 태그되고 activeRegion 기본값도 'island' 라
+// 현재 동작은 그대로 보존된다. 새 섬을 추가할 땐 그 빌더가 만드는 애니메이터·NPC 에
+// region:'island2' 를 달고, 진입 시 setActiveRegion('island2') / 퇴장 시
+// setActiveRegion('island') 만 호출하면 안 보이는 섬은 자동으로 멈춘다.
+let activeRegion = 'island';
+const inActiveRegion = (o) => !o || !o.region || o.region === activeRegion;
+function setActiveRegion(name) { activeRegion = name; }
+
+// 실외 이동 클램프 — 현재 서 있는 섬의 중심·반경 (포털로 섬을 바꾸면 교체).
+let islandClamp = { x: 0, z: 0, r: WALK_R };
+let preIslandPos = null; // GAME ISLAND 입장 전 메인 섬 위치 (복귀용)
 
 // ── 입력 / 물리 ──
 const input = { f: 0, b: 0, l: 0, r: 0, shift: 0 };
@@ -142,10 +162,18 @@ async function init() {
 
   cloudGroup = buildClouds(ctx);
 
+  // 여기까지(동기 빌드)는 전부 메인 섬 소속 — region 게이팅용으로 'island' 태그.
+  // 이후 비동기로 합류하는 NPC·실내도 같은 섬 region 이라 각자 'island' 로 단다.
+  // (??= 라 빌더가 이미 region 을 지정했으면 보존 — 미래의 별도 섬 빌더 대비)
+  for (const s of spinners) s.region ??= 'island';
+  for (const f of floaters) f.region ??= 'island';
+  for (const p of pulsers)  p.region ??= 'island';
+
   // 광장 배회 NPC — 필수 콘텐츠가 아니라 로딩을 막지 않게 비동기로 합류.
   buildWanderer(ctx)
     .then((w) => {
       wanderer = w;
+      w.region = 'island'; // region 게이팅 — 다른 섬에 있을 땐 큐비도 멈춘다
       setCube(w); // 순차 말풍선 — trash 단계 전엔 큐비 말풍선 숨김
       // 움직이는 NPC — follow 로 매 프레임 poi 좌표를 동기화 (updatePOIs).
       pois.push({
@@ -172,6 +200,10 @@ async function init() {
     .then((r) => { partyDome = r.dome; })
     .catch((e) => console.warn('[party] load failed:', e));
 
+  // GAME ISLAND (두 번째 섬) — 멀리 떨어진 좌표에 지어두고 포털로 텔레포트.
+  // 모든 애니메이터가 region:'island2' 라 메인 섬에 있을 땐 루프가 멈춘다.
+  buildIsland2(ctx).catch((e) => console.warn('[island2] load failed:', e));
+
   // 스토리 NPC (경비·과일가게 사장) — 비동기 합류. 움직이므로 follow 로 좌표 동기화.
   buildStoryNpcs(ctx)
     .then((s) => {
@@ -196,6 +228,7 @@ async function init() {
   buildVillagers(ctx).then((vs) => {
     villagers = vs;
     vs.forEach((v, i) => {
+      v.region = 'island'; // region 게이팅 — 다른 섬에 있을 땐 주민 이동 정지
       pois.push({
         id: `villager-${i}`, type: 'villager',
         x: v.root.position.x, z: v.root.position.z, r: 2.8,
@@ -469,6 +502,8 @@ function tryInteract() {
   else if (activePoi.type === 'frame') { markFrameViewed(activePoi.idx); openWorkPanel(activePoi.idx); }
   else if (activePoi.type === 'work-board') { markBoardViewed(); openWorkPanel(); }
   else if (activePoi.type === 'house-exit' || activePoi.type === 'gallery-exit' || activePoi.type === 'party-exit') exitInterior();
+  else if (activePoi.type === 'arcade-portal') enterIsland2();
+  else if (activePoi.type === 'arcade-return') returnFromIsland2();
   else openPanel(activePoi);
 }
 
@@ -551,6 +586,32 @@ function enterParty() {
     yaw: 0, pitch: 0.62, dist: 8.5,
     greeting: '방명록 파티룸에 들어왔다! 🎉',
   });
+}
+
+// GAME ISLAND (두 번째 섬) 입장 — 실내와 달리 자유 카메라/이동을 유지하고
+// 이동 클램프 중심만 그 섬으로 옮긴다. region 을 'island2' 로 바꿔 그 섬의
+// 애니메이터만 돌게 한다 (메인 섬은 자동으로 멈춤).
+function enterIsland2() {
+  preIslandPos = player.position.clone();
+  player.position.set(ISLAND2_SPAWN.x, 0, ISLAND2_SPAWN.z);
+  vel.set(0, 0, 0);
+  islandClamp = { x: ISLAND2_CENTER.x, z: ISLAND2_CENTER.z, r: ISLAND2_WALK };
+  setActiveRegion('island2');
+  activePoi = null;
+  hidePrompt();
+  snapCamera(); // 먼 좌표로 순간이동 — 카메라가 가로질러 날아가지 않게 즉시 스냅
+  openDialogue(['🎮 GAME ISLAND 에 도착했다! 중앙 포털로 마을에 돌아갈 수 있다.'], '안내');
+}
+
+// GAME ISLAND → 메인 섬 복귀
+function returnFromIsland2() {
+  player.position.copy(preIslandPos || new THREE.Vector3(0, 0, 3.5));
+  vel.set(0, 0, 0);
+  islandClamp = { x: 0, z: 0, r: WALK_R };
+  setActiveRegion('island');
+  activePoi = null;
+  hidePrompt();
+  snapCamera();
 }
 
 // 방명록 패널 — 파티룸 테이블에서 연다 (id 가 guestbook 이라 __initGuestbook 동작)
@@ -662,13 +723,13 @@ function loop() {
 
   if (started && !frozen) updateMovement(dt);
   if (playerModel?.userData?.update) playerModel.userData.update(dt);
-  wanderer?.update(dt, player?.position);
-  for (const v of villagers) v.update(dt, player?.position);
+  if (inActiveRegion(wanderer)) wanderer?.update(dt, player?.position);
+  for (const v of villagers) if (inActiveRegion(v)) v.update(dt, player?.position);
   if (!inspect) updateCamera(dt, t);
   updatePOIs(t);
   updateAmbient(t);
   if (started) updateQuestChain(dt); // 배달 타이머·타깃 화살표
-  if (started) updateMinimap(player.position.x, player.position.z, !indoor); // 우측 미니맵 내 위치
+  if (started) updateMinimap(player.position.x, player.position.z, !indoor && activeRegion === 'island'); // 우측 미니맵 내 위치 (메인 섬에서만)
   updateLabels();
 
   if (composer && !panelOpen) composer.render();
@@ -714,10 +775,13 @@ function updateMovement(dt) {
     player.position.x = THREE.MathUtils.clamp(player.position.x, indoor.x - hx, indoor.x + hx);
     player.position.z = THREE.MathUtils.clamp(player.position.z, indoor.z - hz, indoor.z + hz);
   } else {
-    const rr = Math.hypot(player.position.x, player.position.z);
-    if (rr > WALK_R) {
-      player.position.x *= WALK_R / rr;
-      player.position.z *= WALK_R / rr;
+    // 현재 섬 중심 기준 반경 클램프 (메인 섬 = 원점, GAME ISLAND = 먼 좌표)
+    const dx = player.position.x - islandClamp.x;
+    const dz = player.position.z - islandClamp.z;
+    const rr = Math.hypot(dx, dz);
+    if (rr > islandClamp.r) {
+      player.position.x = islandClamp.x + dx * (islandClamp.r / rr);
+      player.position.z = islandClamp.z + dz * (islandClamp.r / rr);
     }
   }
 
@@ -798,9 +862,10 @@ function updatePOIs(t) {
 }
 
 function updateAmbient(t) {
-  for (const s of spinners) s.mesh.rotation.y += s.speed * 0.02;
-  for (const f of floaters) f.mesh.position.y = f.baseY + Math.sin(t * f.speed + f.phase) * f.amp;
+  for (const s of spinners) { if (!inActiveRegion(s)) continue; s.mesh.rotation.y += s.speed * 0.02; }
+  for (const f of floaters) { if (!inActiveRegion(f)) continue; f.mesh.position.y = f.baseY + Math.sin(t * f.speed + f.phase) * f.amp; }
   for (const p of pulsers) {
+    if (!inActiveRegion(p)) continue;
     const lo = p.lo ?? 0.6, hi = p.hi ?? 1.0;
     const k = lo + (hi - lo) * (0.5 + 0.5 * Math.sin(t * 2.4 + p.phase));
     p.mat.color.setHex(p.base);
@@ -823,6 +888,12 @@ function updateLabels() {
   const h = renderer.domElement.clientHeight;
   for (const p of pois) {
     if (!p.el) continue;
+    // 다른 섬에 있을 땐 그 라벨을 숨긴다 — DOM 투영은 안개·거리를 무시해서
+    // GAME ISLAND 에서도 마을 섬 이름표가 화면에 찍히기 때문. (태그 없는 POI = 메인 섬)
+    if ((p.region || 'island') !== activeRegion) {
+      if (p._vis !== false) { p.el.style.opacity = '0'; p._vis = false; }
+      continue;
+    }
     tmp.set(p.x, p.labelY || 3.2, p.z);
     tmp.project(camera);
     if (tmp.z > 1) {
