@@ -84,6 +84,7 @@ let deps = { onOpen() {}, onClose() {} };
 // DOM 캐시 (월드 마운트 후 첫 호출 때 조회)
 let root = null, grid = null, detail = null, countEl = null;
 let mapWin = null, mapImg = null; // 별도 지도창
+let helpWin = null;               // 조작 안내 책 창
 let minimap = null, mmImg = null, mmDot = null; // 우측 미니맵
 function dom() {
   if (!root) {
@@ -93,6 +94,7 @@ function dom() {
     countEl = document.getElementById('inv-count');
     mapWin = document.getElementById('map-window');
     mapImg = document.getElementById('mw-map-img');
+    helpWin = document.getElementById('help-window');
     minimap = document.getElementById('minimap');
     mmImg = document.getElementById('minimap-img');
     mmDot = document.getElementById('minimap-player');
@@ -119,7 +121,7 @@ export function updateMinimap(x, z, show): void {
 
 export function initInventory(d): void {
   deps = { onOpen() {}, onClose() {}, ...d };
-  // 시작 아이템 — 가방이 비어 보이지 않게 섬 지도를 한 장 넣어둔다.
+  // 시작 아이템 — 섬 지도. (조작 안내서는 ☰ 메뉴 → 안내서 로 이동했으므로 가방에서 제외)
   if (items.length === 0) {
     items.push({
       id: 'map', name: '가람의 섬 지도', icon: '🗺️', count: 1,
@@ -132,6 +134,8 @@ export function initInventory(d): void {
       b.addEventListener('click', closeInventory));
     mapWin?.querySelectorAll('[data-map-close]').forEach((b) =>
       b.addEventListener('click', closeMap));
+    helpWin?.querySelectorAll('[data-help-close]').forEach((b) =>
+      b.addEventListener('click', closeHelp));
   }
   renderGrid();
 }
@@ -181,7 +185,8 @@ export function openInventory(): void {
 export function closeInventory(): void {
   if (!open || !dom()) return;
   open = false;
-  closeMap(); // 지도창이 열려 있으면 함께 닫는다
+  closeMap();  // 지도창이 열려 있으면 함께 닫는다
+  closeHelp(); // 안내창도 함께 닫는다
   root.classList.remove('show');
   root.setAttribute('aria-hidden', 'true');
   deps.onClose();
@@ -201,6 +206,22 @@ export function closeMap(): void {
   if (!mapWin) return;
   mapWin.classList.remove('show');
   mapWin.setAttribute('aria-hidden', 'true');
+}
+
+// ── 조작 안내 책 창 — 안내서 아이템을 누르면 인벤토리 위로 뜬다 (정적 내용) ──
+export function helpOpen(): boolean {
+  return !!helpWin?.classList.contains('show');
+}
+export function openHelp(): void {
+  if (!dom() || !helpWin) return;
+  helpWin.classList.add('show');
+  helpWin.setAttribute('aria-hidden', 'false');
+  deps.onHelpOpened?.(); // 적응 훈련 등 외부 훅에 안내서 읽음 알림
+}
+export function closeHelp(): void {
+  if (!helpWin) return;
+  helpWin.classList.remove('show');
+  helpWin.setAttribute('aria-hidden', 'true');
 }
 
 export function toggleInventory(): void {
@@ -225,7 +246,7 @@ function renderGrid() {
       slot.addEventListener('click', () => {
         selected = it.id;
         renderGrid();
-        if (it.id === 'map') openMap(); // 지도는 별도 창으로
+        if (it.id === 'map') openMap();   // 지도는 별도 창으로
       });
     } else {
       slot.disabled = true;

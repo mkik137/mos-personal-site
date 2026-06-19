@@ -13,6 +13,10 @@ const BASE_URL = '/glb/character/player/Fast Run.glb';
 const JUMP_URL = '/glb/character/player/Jump.glb';
 const BACK_URL = '/glb/character/player/Running Backward.glb';
 const STOP_URL = '/glb/character/player/Run To Stop.glb';
+// magic : 2H 마법 시전(공격) 클립 — F 키로 발동, 자막 모션 후 달리기로 복귀
+// death : 뒤로 쓰러지는 사망 클립 — die() 로 발동, 끝 프레임에서 클램프(쓰러진 채 유지)
+const MAGIC_URL = '/glb/character/player/Standing 2H Magic Attack 01.glb';
+const DEATH_URL = '/glb/character/player/Falling Back Death.glb';
 
 // Mixamo 클립은 Hips 본에 루트 위치(translation) 트랙을 담아 캐릭터를
 // 통째로 이동·상승시킨다. 게임은 자체 물리(player.position, jumpY)로
@@ -62,12 +66,15 @@ export async function loadGlbCharacter(
     new Promise((resolve, reject) => loader.load(url, resolve, undefined, reject));
 
   // 베이스 메시 + 나머지 클립 소스를 병렬 로드
-  const [baseGltf, jumpGltf, backGltf, stopGltf] = await Promise.all([
-    load(BASE_URL),
-    load(JUMP_URL),
-    load(BACK_URL),
-    load(STOP_URL),
-  ]);
+  const [baseGltf, jumpGltf, backGltf, stopGltf, magicGltf, deathGltf] =
+    await Promise.all([
+      load(BASE_URL),
+      load(JUMP_URL),
+      load(BACK_URL),
+      load(STOP_URL),
+      load(MAGIC_URL),
+      load(DEATH_URL),
+    ]);
 
   const base = baseGltf.scene;
   base.traverse((o) => {
@@ -113,15 +120,19 @@ export async function loadGlbCharacter(
   const jumpClip = stripRootMotion(jumpGltf.animations[0]);
   const backClip = stripRootMotion(backGltf.animations[0]);
   const stopClip = stripRootMotion(stopGltf.animations[0]);
+  const magicClip = stripRootMotion(magicGltf.animations[0]);
+  const deathClip = stripRootMotion(deathGltf.animations[0]);
 
   const actions = {
     run: mixer.clipAction(runClip),
     jump: mixer.clipAction(jumpClip),
     back: mixer.clipAction(backClip),
     stop: mixer.clipAction(stopClip),
+    magic: mixer.clipAction(magicClip),
+    death: mixer.clipAction(deathClip),
   };
-  // 1회성(once-clamp) 클립 — 끝 프레임에서 멈춰 정지/공중 자세를 유지
-  for (const once of [actions.jump, actions.stop]) {
+  // 1회성(once-clamp) 클립 — 끝 프레임에서 멈춰 정지/공중/시전/사망 자세를 유지
+  for (const once of [actions.jump, actions.stop, actions.magic, actions.death]) {
     once.setLoop(THREE.LoopOnce, 1);
     once.clampWhenFinished = true;
   }
@@ -131,7 +142,16 @@ export async function loadGlbCharacter(
   // 달리기를 항상 재생하되, timeScale 로 다리 속도를 제어한다.
   // 정지 시엔 'stop'(Run To Stop) 클립으로 전환해 멈추는 동작을 보여준다.
   actions.run.play();
-  let active: 'run' | 'jump' | 'back' | 'stop' = 'run';
+  let active: 'run' | 'jump' | 'back' | 'stop' | 'magic' | 'death' = 'run';
+
+  // 마법 시전 / 사망은 이동 모션(run/stop/…)보다 우선한다.
+  //  casting : 시전 중이면 setMotion 이 모션을 덮어쓰지 않게 잠근다.
+  //  cast    : { t, dur, releaseAt, released, onRelease } — update(dt) 가 진행시켜
+  //            releaseAt 시점에 onRelease(파이어볼 발사)를 1회 호출하고,
+  //            클립이 끝나면 잠금을 풀어 자연히 이동 모션으로 복귀한다.
+  let casting = false;
+  let dead = false;
+  let cast: { t: number; dur: number; releaseAt: number; released: boolean; onRelease?: () => void } | null = null;
 
   function fadeTo(name: 'run' | 'jump' | 'back' | 'stop', dur = 0.18): void {
     if (name === active) return;
@@ -155,8 +175,49 @@ export async function loadGlbCharacter(
     animated: true,
     mixer,
     actions,
+    isCasting(): boolean { return casting; }, // 시전 중 여부 — 월드가 이동 잠금에 사용
     update(dt: number): void {
       mixer.update(dt);
+      if (cast) {
+        cast.t += dt;
+        if (!cast.released && cast.t >= cast.releaseAt) {
+          cast.released = true;
+          cast.onRelease?.(); // 손을 뻗는 정점에서 파이어볼 발사
+        }
+        // 시전 막바지에 잠금을 풀어 다음 프레임 setMotion 이 이동 모션으로 크로스페이드
+        if (cast.t >= cast.dur - 0.15) { casting = false; cast = null; }
+      }
+    },
+    // F 키 마법 시전 — 시전 모션을 1회 재생하고, 발동 정점에 onRelease 를 호출한다.
+    // 이미 시전 중이거나 사망 상태면 무시. 시전이 시작됐으면 true.
+    castMagic(onRelease?: () => void): boolean {
+      if (casting || dead) return false;
+      const m = actions.magic;
+      m.reset();
+      m.enabled = true;
+      m.setEffectiveWeight(1);
+      m.timeScale = 1.15; // 약간 빠르게 — 반응성
+      m.play();
+      m.crossFadeFrom(actions[active], 0.12, false);
+      active = 'magic';
+      casting = true;
+      const dur = m.getClip().duration / m.timeScale;
+      cast = { t: 0, dur, releaseAt: dur * 0.42, released: false, onRelease };
+      return true;
+    },
+    // 사망 모션 — 뒤로 쓰러진 뒤 끝 프레임에서 클램프. revive() 로 복귀.
+    die(): void {
+      if (dead) return;
+      dead = true; casting = false; cast = null;
+      const d = actions.death;
+      d.reset(); d.enabled = true; d.setEffectiveWeight(1); d.play();
+      d.crossFadeFrom(actions[active], 0.2, false);
+      active = 'death';
+    },
+    revive(): void {
+      if (!dead) return;
+      dead = false; active = 'death';
+      fadeTo('stop', 0.2);
     },
     // speed: 수평 속도(m/s), grounded: 접지 여부, backward: 뒤로 이동 여부
     setMotion(
@@ -165,6 +226,7 @@ export async function loadGlbCharacter(
       walkSpeed = 5.5,
       backward = false,
     ): void {
+      if (casting || dead) return; // 시전·사망 중엔 이동 모션 전환 잠금
       const cadence = THREE.MathUtils.clamp(speed / walkSpeed, 0, 2);
       actions.run.timeScale = grounded ? Math.max(cadence, 0.2) : 1;
       actions.back.timeScale = grounded ? Math.max(cadence, 0.2) : 1;

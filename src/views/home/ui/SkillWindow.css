@@ -1,0 +1,94 @@
+/* ── 스킬창 (K) ───────────────────────────── */
+#skill-window {
+  position: fixed; inset: 0; z-index: 60;
+  display: none; align-items: center; justify-content: center;
+}
+#skill-window.show { display: flex; }
+
+#skill-window .sw-scrim {
+  position: absolute; inset: 0;
+  background: rgba(18, 22, 34, 0.5);
+  backdrop-filter: blur(3px);
+}
+
+.sw-panel {
+  position: relative;
+  width: min(440px, 92vw); max-height: 88vh; overflow-y: auto;
+  padding: 20px 22px 22px;
+  border-radius: 20px;
+  background: #fbf7ef;
+  border: 1px solid rgba(110, 84, 47, 0.25);
+  box-shadow: 0 24px 60px rgba(20, 28, 48, 0.34);
+}
+
+.sw-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 14px;
+}
+.sw-title { font-size: 20px; font-weight: 800; color: #3b2c18; }
+.sw-title .sw-star { margin-right: 4px; }
+.sw-close {
+  font-size: 13px; font-weight: 600; color: #6e542f;
+  background: rgba(110, 84, 47, 0.1); border: 0; border-radius: 999px;
+  padding: 6px 12px; cursor: pointer;
+}
+.sw-close kbd {
+  font: inherit; background: #fff; border: 1px solid rgba(110, 84, 47, 0.3);
+  border-radius: 5px; padding: 0 5px; margin-left: 2px;
+}
+
+.sw-label {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
+  color: #8a6f44; margin: 14px 2px 8px;
+}
+.sw-label:first-of-type { margin-top: 2px; }
+
+/* 장착 슬롯 줄 */
+.sw-slots { display: flex; gap: 10px; }
+.sw-slot {
+  position: relative; flex: 1; aspect-ratio: 1 / 1;
+  border-radius: 14px;
+  display: grid; place-items: center;
+  background: #f1e8d6;
+  border: 2px solid rgba(110, 84, 47, 0.2);
+  cursor: pointer; transition: border-color 0.15s ease, transform 0.1s ease;
+}
+.sw-slot.filled { background: #ffe9d6; border-color: rgba(255, 130, 50, 0.45); }
+.sw-slot.sel { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(255, 91, 53, 0.2); }
+.sw-slot:active { transform: scale(0.96); }
+.sw-slot-key {
+  position: absolute; top: 4px; left: 7px;
+  font-size: 11px; font-weight: 700; color: #a88c5e;
+}
+.sw-slot-icon { font-size: 30px; line-height: 1; }
+.sw-slot-clear {
+  position: absolute; top: 3px; right: 3px;
+  width: 20px; height: 20px; border-radius: 999px;
+  display: grid; place-items: center;
+  font-size: 11px; line-height: 1; color: #fff;
+  background: rgba(60, 40, 24, 0.55); border: 0; cursor: pointer;
+}
+.sw-slot-clear:hover { background: var(--accent); }
+
+/* 보유 스킬 카탈로그 */
+.sw-catalog {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+}
+.sw-card {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto;
+  column-gap: 10px; align-items: center; text-align: left;
+  padding: 10px 12px; border-radius: 14px;
+  background: #fff;
+  border: 1.5px solid rgba(110, 84, 47, 0.18);
+  cursor: pointer; transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+.sw-card:hover { border-color: rgba(255, 130, 50, 0.55); box-shadow: 0 6px 16px rgba(255, 120, 40, 0.14); }
+.sw-card:active { transform: scale(0.98); }
+.sw-card.equipped { border-color: rgba(255, 130, 50, 0.7); background: #fff6ee; }
+.sw-card-icon { grid-row: 1 / 3; font-size: 30px; }
+.sw-card-name { font-size: 14px; font-weight: 700; color: #3b2c18; }
+.sw-card-desc { font-size: 11.5px; color: #8a6f44; line-height: 1.35; }
+
+.sw-hint {
+  margin: 14px 2px 0; font-size: 11.5px; color: #a88c5e; line-height: 1.4;
+}

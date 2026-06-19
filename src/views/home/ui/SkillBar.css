@@ -1,0 +1,58 @@
+/* ── 중앙 하단 스킬바 ───────────────────────── */
+#skillbar {
+  position: fixed; left: 50%; bottom: 22px; z-index: 24;
+  transform: translateX(-50%);
+  display: none; align-items: flex-end; gap: 10px;
+  padding: 8px 12px; border-radius: 16px;
+  background: rgba(24, 30, 44, 0.42);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 26px rgba(20, 28, 48, 0.28);
+}
+#skillbar.on { display: flex; }
+
+.skill-slot {
+  position: relative;
+  width: 58px; height: 58px; border-radius: 13px;
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1.5px solid rgba(255, 255, 255, 0.22);
+  cursor: pointer; user-select: none; touch-action: none;
+  transition: transform 0.1s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+.skill-slot.filled {
+  background: rgba(255, 122, 34, 0.16);
+  border-color: rgba(255, 150, 70, 0.5);
+}
+.skill-slot:active { transform: scale(0.92); }
+.skill-slot.cast {
+  box-shadow: 0 0 0 3px rgba(255, 150, 70, 0.65), 0 0 18px rgba(255, 130, 50, 0.7);
+  background: rgba(255, 140, 50, 0.34);
+}
+.skill-slot .ss-icon { font-size: 28px; line-height: 1; pointer-events: none; }
+.skill-slot .ss-key {
+  position: absolute; top: 3px; left: 6px;
+  font-size: 11px; font-weight: 700; color: rgba(255, 255, 255, 0.7);
+  pointer-events: none;
+}
+
+/* ── 모바일 — 우하단 코너에 떠 있는 둥근 스킬(시전) 버튼 클러스터 ──
+   바(bar) 배경 없이 개별 둥근 버튼으로. 장착된 스킬만 버튼으로 보이고(빈 슬롯 숨김),
+   2열로 줄바꿈하며 위로 쌓인다. 왼쪽에 ✋ 상호작용 버튼.
+   (스킬창 열기는 우상단 ☰ 메뉴 → 스킬창 항목으로 통합 — 별도 🪄 버튼 제거) */
+body.touch #skillbar {
+  left: auto; right: 22px; bottom: 24px; transform: none;
+  flex-wrap: wrap; align-items: flex-end; justify-content: flex-end;
+  width: 124px; gap: 10px; padding: 0;
+  background: transparent; border: 0; box-shadow: none; backdrop-filter: none;
+}
+body.touch .skill-slot:not(.filled) { display: none; } /* 빈 슬롯은 모바일에서 숨김 */
+body.touch .skill-slot {
+  width: 57px; height: 57px; border-radius: 999px;
+  background: rgba(34, 40, 58, 0.62);
+  border: 1.5px solid rgba(255, 168, 90, 0.6);
+  box-shadow: 0 8px 22px rgba(20, 28, 48, 0.32);
+  backdrop-filter: blur(6px);
+}
+body.touch .skill-slot .ss-icon { font-size: 27px; }
+body.touch .skill-slot .ss-key { display: none; } /* 모바일엔 단축키 번호 숨김 */

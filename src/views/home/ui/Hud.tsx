@@ -7,30 +7,6 @@ export default function Hud() {
         <span className="seal" /> 가람의 섬
       </div>
 
-      <div className="hud" id="hud-help">
-        <span className="k">
-          <kbd>W</kbd>
-          <kbd>A</kbd>
-          <kbd>S</kbd>
-          <kbd>D</kbd> 이동
-        </span>
-        <span className="k">
-          <kbd>Shift</kbd> 달리기
-        </span>
-        <span className="k">
-          <kbd>Space</kbd> 점프
-        </span>
-        <span className="k">
-          <kbd>드래그</kbd> 회전
-        </span>
-        <span className="k">
-          <kbd>E</kbd> 상호작용
-        </span>
-        <span className="k">
-          <kbd>I</kbd> 가방
-        </span>
-      </div>
-
       <div className="hud" id="hud-dir">
         <div className="row">
           <span className="pin" /> 가람에게 말 걸기 — 소개

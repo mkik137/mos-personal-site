@@ -8,7 +8,10 @@ import InteractionPrompt from "./InteractionPrompt";
 import MobileControls from "./MobileControls";
 import WorldOverlay from "./WorldOverlay";
 import InventoryPanel from "./InventoryPanel";
+import SkillBar from "./SkillBar";
+import SkillWindow from "./SkillWindow";
 import MapWindow from "./MapWindow";
+import HelpWindow from "./HelpWindow";
 import Minimap from "./Minimap";
 import NpcDialogue from "./NpcDialogue";
 import QuestBanner from "./QuestBanner";
@@ -44,7 +47,10 @@ export default function HomePage() {
       <MobileControls />
       <WorldOverlay />
       <InventoryPanel />
+      <SkillBar />
+      <SkillWindow />
       <MapWindow />
+      <HelpWindow />
       <Minimap />
       <NpcDialogue />
       <QuestBanner />

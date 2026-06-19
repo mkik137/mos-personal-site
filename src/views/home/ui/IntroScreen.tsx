@@ -22,13 +22,13 @@ export default function IntroScreen() {
             <kbd>Shift</kbd> 달리기
           </span>
           <span className="item">
-            <kbd>Space</kbd> 점프
-          </span>
-          <span className="item">
             <kbd>드래그</kbd> 시점 회전
           </span>
           <span className="item">
             <kbd>E</kbd> 대화 / 입장
+          </span>
+          <span className="item">
+            <kbd>1</kbd>~<kbd>4</kbd> 스킬 · <kbd>K</kbd> 스킬창
           </span>
         </div>
         <div className="keys keys-touch">
@@ -36,13 +36,13 @@ export default function IntroScreen() {
             <kbd>조이스틱</kbd> 이동
           </span>
           <span className="item">
-            <kbd>⤒</kbd> 점프
-          </span>
-          <span className="item">
             <kbd>✋</kbd> 대화 / 입장
           </span>
           <span className="item">
-            <kbd>🎒</kbd> 가방
+            <kbd>🔥</kbd> 스킬
+          </span>
+          <span className="item">
+            <kbd>☰</kbd> 메뉴 (가방·스킬·안내서)
           </span>
           <span className="item">
             <kbd>드래그</kbd> 시점 회전

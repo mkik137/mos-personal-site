@@ -99,12 +99,12 @@
 body.touch #quest-log {
   top: 12px;
   left: auto;
-  right: 12px;
+  right: calc(68px + env(safe-area-inset-right)); /* 우상단 ☰ 메뉴 버튼 자리 비우기 */
   bottom: auto;
   transform: none;
   flex-direction: row;
   width: auto;
-  max-width: min(64vw, 320px);
+  max-width: min(56vw, 280px);
   padding: 8px 13px;
   border-radius: 999px;
 }

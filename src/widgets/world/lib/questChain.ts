@@ -49,8 +49,11 @@ let vendorCasual = 0;
 // 터치 기기 여부 — 안내 문구를 키보드(WASD/I) ↔ 조이스틱·🎒 버튼으로 분기.
 // (world.ts init 에서 (pointer: coarse) 감지 시 body.touch 클래스를 붙인다)
 const isTouch = (): boolean => typeof document !== 'undefined' && document.body.classList.contains('touch');
-// 경비 적응 훈련(튜토리얼) 퀘스트 — 직접 이동·가방 열기를 해야 통과
-let tutorialGiven = false, tutorialDone = false, moveDone = false, invDone = false;
+// 경비 적응 훈련(튜토리얼) 퀘스트 — 안내서 읽기 + 이동·달리기·점프·시점회전·가방을 모두 해야 통과.
+// (스킬 1~4·K 는 제외. 달리기(Shift)는 키보드 전용이라 터치 기기에선 요구하지 않는다.)
+let tutorialGiven = false, tutorialDone = false;
+let moveDone = false, invDone = false, helpReadDone = false;
+let runDone = false, lookDone = false; // 점프는 현재 비활성이라 훈련 항목에서 제외
 let movedDirs = new Set();   // 적응 훈련: 실제로 사용한 이동 방향(f/b/l/r) — 4방향 모두 써야 통과
 let boardViewed = false;    // 갤러리: 경력 게시판을 봤는지 (액자 감상 선행 조건)
 let framesViewed = new Set();
@@ -102,7 +105,8 @@ export function initQuestChain(d): void {
   deps = d;
   stage = 'guard';
   guardCasual = 0; vendorCasual = 0;
-  tutorialGiven = tutorialDone = moveDone = invDone = false;
+  tutorialGiven = tutorialDone = moveDone = invDone = helpReadDone = false;
+  runDone = lookDone = false;
   movedDirs = new Set();
   tutorialReady = galleryReady = deliveryReady = trashReady = false;
   vendorDone = trashDone = deliveryPhase = false;
@@ -148,8 +152,8 @@ export function talkGuard(): void {
       tutorialGiven = true;
       updateTutorialObjective();
       showQuestStart('적응 훈련 🎮', isTouch()
-        ? '조이스틱 4방향 이동 + 🎒 버튼으로 가방 열기'
-        : 'WASD 4방향 이동 + I 로 가방 열기');
+        ? '☰ 메뉴 → 안내서 읽기 + 이동·시점 회전·가방 (스킬 제외)'
+        : '☰ 메뉴 → 안내서 읽기 + 이동·달리기·시점 회전·가방 (스킬 제외)');
       openDialogue(isTouch() ? GUARD_LINES_FIRST_TOUCH : GUARD_LINES_FIRST, GUARD_NAME, opts);
       return;
     }
@@ -177,38 +181,71 @@ export function talkGuard(): void {
   openDialogue(GUARD_LINES_CASUAL[guardCasual++ % GUARD_LINES_CASUAL.length], GUARD_NAME, opts);
 }
 
-// 훈련 진행 목표 HUD — 이동(4방향)/가방 체크리스트. 터치 기기는 조이스틱·🎒 버튼으로 안내.
+// 달리기(Shift)는 키보드 전용 — 터치 기기에선 훈련 항목에서 제외한다.
+const needRun = (): boolean => !isTouch();
+
+// 훈련 완료 조건 — 안내서·이동·점프·시점·가방 (+데스크톱은 달리기).
+function tutorialAllDone(): boolean {
+  const base = helpReadDone && moveDone && lookDone && invDone;
+  return needRun() ? base && runDone : base;
+}
+
+// 훈련 진행 목표 HUD — 안내서/이동/달리기/점프/시점/가방 체크리스트.
 function updateTutorialObjective() {
+  const mk = (b) => (b ? '✅' : '⬜');
   const n = Math.min(movedDirs.size, 4);
-  const move = isTouch() ? '조이스틱' : 'WASD';
-  const bag = isTouch() ? '가방(🎒)' : '가방(I)';
-  setObjective(`🎮 적응 훈련 — 이동 ${move} ${n}/4 ${moveDone ? '✅' : ''}· ${bag} ${invDone ? '✅' : '⬜'}`);
+  const moveLabel = isTouch() ? '조이스틱' : 'WASD';
+  const items = [`📖 안내서${mk(helpReadDone)}`, `${moveLabel} 이동 ${n}/4${moveDone ? '✅' : ''}`];
+  if (needRun()) items.push(`달리기${mk(runDone)}`);
+  items.push(`시점${mk(lookDone)}`, `가방${mk(invDone)}`);
+  setObjective('🎮 적응 훈련 — ' + items.join(' · '));
+}
+
+const tutorialActive = (): boolean => stage === 'guard' && tutorialGiven && !tutorialDone;
+
+// 훈련 항목 완료 처리 공통 — 목표 HUD 갱신 + 통과 판정.
+function markTutorial(setter: () => void): void {
+  setter();
+  updateTutorialObjective();
+  checkTutorialComplete();
 }
 
 // 플레이어가 움직일 때 (world.ts updateMovement 에서 input 과 함께 호출).
-//  W/A/S/D(=f/l/b/r) 네 방향을 모두 한 번씩 써야 이동 항목이 완료된다.
+//  이동: W/A/S/D(=f/l/b/r) 네 방향을 모두 한 번씩. 달리기: Shift + 이동.
 export function onPlayerMoved(input): void {
-  if (stage !== 'guard' || !tutorialGiven || tutorialDone || moveDone) return;
+  if (!tutorialActive()) return;
   let changed = false;
-  for (const d of ['f', 'b', 'l', 'r']) {
-    if (input && input[d] > 0.1 && !movedDirs.has(d)) { movedDirs.add(d); changed = true; }
+  if (!moveDone) {
+    for (const d of ['f', 'b', 'l', 'r']) {
+      if (input && input[d] > 0.1 && !movedDirs.has(d)) { movedDirs.add(d); changed = true; }
+    }
+    if (movedDirs.size >= 4) { moveDone = true; changed = true; }
   }
-  if (!changed) return;
-  if (movedDirs.size >= 4) moveDone = true;
-  updateTutorialObjective();
-  checkTutorialComplete();
+  const moving = input && (input.f > 0.1 || input.b > 0.1 || input.l > 0.1 || input.r > 0.1);
+  if (needRun() && !runDone && input?.shift > 0.1 && moving) { runDone = true; changed = true; }
+  if (changed) markTutorial(() => {});
 }
 
 // 플레이어가 가방(I)을 열었을 때 (world.ts inventory onOpen 에서 호출).
 export function onInventoryOpened(): void {
-  if (stage !== 'guard' || !tutorialGiven || tutorialDone || invDone) return;
-  invDone = true;
-  updateTutorialObjective();
-  checkTutorialComplete();
+  if (!tutorialActive() || invDone) return;
+  markTutorial(() => { invDone = true; });
+}
+
+// 「조작 안내서」를 펼쳤을 때 (inventory.ts openHelp → world.ts onHelpOpened 에서 호출).
+export function onHelpRead(): void {
+  if (!tutorialActive() || helpReadDone) return;
+  markTutorial(() => { helpReadDone = true; });
+}
+
+// 시점 회전(드래그)했을 때 (world.ts pointermove 드래그에서 호출).
+export function onLooked(): void {
+  if (!tutorialActive() || lookDone) return;
+  markTutorial(() => { lookDone = true; });
 }
 
 function checkTutorialComplete() {
-  if (!moveDone || !invDone || tutorialReady) return;
+  if (!tutorialAllDone() || tutorialReady) return;
   // 행동 완료 — 바로 넘어가지 않고 경비에게 보고하러 가게 한다 (경비 머리 위 ✓ 풍선).
   tutorialReady = true;
   refreshBubbles();

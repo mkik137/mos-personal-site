@@ -8,7 +8,7 @@ import { animateLimbs } from '@/entities/character';
 import { WALK_R } from './constants';
 import { buildIsland }  from './island';
 import { buildDecor }   from './decor';
-import { buildPlayer }  from './player';
+import { buildPlayer, createFireballs }  from './player';
 import { buildPOIs }    from './poi';
 import { buildClouds }  from './clouds';
 import { buildNature }  from './nature';
@@ -25,17 +25,20 @@ import {
   moveChoice, pickChoice, pickSelected, dialogueActive, dialogueChoosing,
 } from './dialogue';
 import { initQuest, startHelperDialogue, pickupBox, useDumpster } from './quest';
-import { initInventory, toggleInventory, closeInventory, inventoryOpen, mapOpen, closeMap, updateMinimap } from './inventory';
+import { initInventory, toggleInventory, closeInventory, inventoryOpen, mapOpen, closeMap, openHelp, helpOpen, closeHelp, updateMinimap } from './inventory';
+import { initSkills, activateSkillSlot, toggleSkillWindow, closeSkillWindow, skillWindowOpen, revealSkillBar } from './skills';
 import {
   initQuestChain, setStoryNpcs, setCube, setAboutBubble, updateQuestChain,
   talkGuard, talkVendor, pickFruit, onAboutSeen, markBoardViewed, markFrameViewed,
   tryDeliver, takePending, onGuestbookSubmit, showQuestStart,
-  onPlayerMoved, onInventoryOpened, galleryReadyToReport, reportGallery,
+  onPlayerMoved, onInventoryOpened, onHelpRead, onLooked,
+  galleryReadyToReport, reportGallery,
 } from './questChain';
 
 // ── 모듈 수준 렌더링 상태 ──
 let renderer, scene, camera, composer;
 let player, playerModel, npc, npcModel, wanderer;
+let fireballs = null; // F 키 마법 파이어볼 시스템 ({ spawn, update })
 let villagers = [];
 let guard = null, vendor = null;
 
@@ -84,6 +87,10 @@ const vel   = new THREE.Vector3();
 const WALK_SPEED = 5.3;  // 기존 8 의 약 2/3
 const RUN_SPEED  = 10.7; // 기존 16 의 약 2/3
 let jumpY = 0, jumpVel = 0, grounded = true;
+// 점프는 현재 비활성(숨김). 올라설 플랫폼이 아직 없어 의미가 없으므로 트리거·버튼·안내를 모두 막아둔다.
+// 추후 게임섬 점프맵에서만 쓸 예정 — 그때 jumpEnabled 를 켜고(필요시 region 진입 시 토글)
+// applyJumpVisibility() 로 모바일 점프 버튼을 다시 노출하면 된다.
+let jumpEnabled = false;
 const GRAVITY = -28, JUMP_V = 9.2;
 
 // ── 카메라 / UI ──
@@ -155,6 +162,7 @@ async function init() {
   const pResult  = await buildPlayer(ctx);
   player      = pResult.player;
   playerModel = pResult.playerModel;
+  fireballs   = createFireballs(scene, renderer, camera); // F 키 마법 파이어볼 (셰이더 프리워밍 포함)
 
   const poiResult = await buildPOIs(ctx);
   npc      = poiResult.npc;
@@ -253,6 +261,18 @@ async function init() {
   // 인벤토리(가방) — 열면 플레이어를 멈추고 프롬프트를 숨긴다.
   initInventory({
     onOpen: () => { frozen = true; input.f = input.b = input.l = input.r = 0; hidePrompt(); onInventoryOpened(); },
+    onClose: () => { frozen = false; if (activePoi) showPrompt(activePoi.prompt); },
+    onHelpOpened: () => onHelpRead(), // 적응 훈련: 「조작 안내서」 읽음 기록
+  });
+  // 스킬(장착·시전) — 스킬바/스킬창. 시전은 마법 모션 + 파이어볼을 재사용.
+  initSkills({
+    getFireballs:   () => fireballs,
+    getPlayer:      () => player,
+    getPlayerModel: () => playerModel,
+    castMagic:      (onRelease) => playerModel?.userData?.castMagic?.(onRelease),
+    canCast:        () => started && !frozen && !panelOpen,
+    canOpen:        () => started && !panelOpen,
+    onOpen:  () => { frozen = true; input.f = input.b = input.l = input.r = 0; hidePrompt(); },
     onClose: () => { frozen = false; if (activePoi) showPrompt(activePoi.prompt); },
   });
   // 퀘스트 체인 (경비 → 가람 전시회 → 과일 배달 → 큐비 → 엔딩)
@@ -376,15 +396,31 @@ function bindEvents() {
       if (e.code === 'Escape' || e.code === 'KeyI') closeMap();
       return;
     }
+    // 안내창(조작 안내 책)이 열려 있으면 Esc/I 로 안내창만 먼저 닫는다.
+    if (helpOpen()) {
+      if (e.code === 'Escape' || e.code === 'KeyI') closeHelp();
+      return;
+    }
     // 인벤토리 열림 중에는 I/Esc 로 닫기만 받고 나머지 입력은 차단.
     if (inventoryOpen()) {
       if (e.code === 'KeyI' || e.code === 'Escape') closeInventory();
       return;
     }
+    // 스킬창 열림 중에는 K/Esc 로 닫기만 받고 나머지 입력은 차단.
+    if (skillWindowOpen()) {
+      if (e.code === 'KeyK' || e.code === 'Escape') closeSkillWindow();
+      return;
+    }
     // I — 인벤토리(가방) 토글. 패널(고서)·시작 전엔 무시.
     if (e.code === 'KeyI') { if (started && !panelOpen) toggleInventory(); return; }
+    // K — 스킬창 토글.
+    if (e.code === 'KeyK') { if (started && !panelOpen) toggleSkillWindow(); return; }
     setKey(e.code, true);
     if (e.code === 'KeyE' || e.code === 'Enter') tryInteract();
+    // 스킬 시전 — 숫자키 1~4 로 장착 슬롯, F 는 1번 슬롯 단축.
+    const dk = /^(?:Digit|Numpad)([1-4])$/.exec(e.code);
+    if (dk) activateSkillSlot(+dk[1] - 1);
+    if (e.code === 'KeyF') activateSkillSlot(0);
     if (e.code === 'Space') { e.preventDefault(); tryJump(); }
     if (e.code === 'Escape') closePanel();
   });
@@ -393,6 +429,7 @@ function bindEvents() {
   let dragging = false, lastX = 0, lastY = 0;
   const canvas = renderer.domElement;
   canvas.addEventListener('pointerdown', (e) => {
+    closeMobileMenu(); // 화면을 누르면 ☰ 메뉴 팝업 닫기
     if (frozen || indoor) return; // 실내에선 연출된 고정 앵글 유지 (회전 잠금)
     dragging = true; lastX = e.clientX; lastY = e.clientY;
     canvas.setPointerCapture(e.pointerId);
@@ -403,6 +440,7 @@ function bindEvents() {
     lastX = e.clientX; lastY = e.clientY;
     camState.yaw   -= dx * 0.005;
     camState.pitch  = THREE.MathUtils.clamp(camState.pitch + dy * 0.004, 0.18, 1.05);
+    if (dx || dy) onLooked(); // 적응 훈련: 시점 회전(드래그) 사용 기록
   });
   canvas.addEventListener('pointerup', () => { dragging = false; });
   canvas.addEventListener('wheel', (e) => {
@@ -427,13 +465,36 @@ function bindEvents() {
     // 키캡 표기를 터치용으로 — 프롬프트의 'E', 대화창 "계속하기 E" 힌트
     document.querySelectorAll('.pkey, .dlg-key').forEach((el) => { el.textContent = '탭'; });
     setupJoystick();
+    applyJumpVisibility(); // 점프 버튼 노출 여부 반영 (현재 비활성 → 숨김)
     const jb = document.getElementById('jump-btn');
     if (jb) jb.addEventListener('pointerdown', (e) => { e.preventDefault(); tryJump(); });
     const ab = document.getElementById('act-btn');
     if (ab) ab.addEventListener('pointerdown', (e) => { e.preventDefault(); tryInteract(); });
-    const bb = document.getElementById('bag-btn');
-    if (bb) bb.addEventListener('pointerdown', (e) => { e.preventDefault(); mobileToggleBag(); });
   }
+
+  // ☰ 통합 메뉴 — 데스크톱·모바일 공통. 버튼은 pointerdown 으로 팝업 토글, 항목은 click 으로
+  // 동작(여는 탭의 잔여 click 이 새로 뜬 창의 스크림을 눌러 닫는 버그 회피).
+  const mb = document.getElementById('menu-btn');
+  if (mb) mb.addEventListener('pointerdown', (e) => { e.preventDefault(); toggleMobileMenu(); });
+  document.querySelectorAll('#menu-pop .menu-item').forEach((it) => {
+    it.addEventListener('click', () => mobileMenuAction(it.getAttribute('data-menu')));
+  });
+}
+
+// ☰ 모바일 메뉴 팝업 토글/닫기 + 항목 동작(가방·스킬창·안내서).
+function toggleMobileMenu() {
+  if (dialogueActive() || panelOpen || !started) return;
+  document.getElementById('menu-pop')?.classList.toggle('show');
+}
+function closeMobileMenu() {
+  document.getElementById('menu-pop')?.classList.remove('show');
+}
+function mobileMenuAction(kind) {
+  closeMobileMenu();
+  if (!started || panelOpen) return;
+  if (kind === 'bag') mobileToggleBag();
+  else if (kind === 'skill') toggleSkillWindow();
+  else if (kind === 'help') openHelp();
 }
 
 // 모바일 가방 버튼 — I 키 키다운 라우팅과 동일한 우선순위로 토글한다.
@@ -458,6 +519,7 @@ function setupJoystick() {
   const nub = joy.querySelector('.nub');
   let active = false, cx = 0, cy = 0;
   joy.addEventListener('pointerdown', (e) => {
+    closeMobileMenu(); // 조이스틱을 잡으면 ☰ 메뉴 팝업 닫기
     active = true;
     const r = joy.getBoundingClientRect();
     cx = r.left + r.width / 2; cy = r.top + r.height / 2;
@@ -648,9 +710,17 @@ function snapCamera() {
 }
 
 function tryJump() {
+  if (!jumpEnabled) return; // 점프 비활성(추후 게임섬 점프맵에서만 사용)
   if (frozen || !started) return;
+  if (playerModel?.userData?.isCasting?.()) return; // 시전 중엔 점프도 막아 완전 고정
   if (grounded) { jumpVel = JUMP_V; grounded = false; }
 }
+
+// 모바일 점프 버튼 노출 여부 — jumpEnabled 에 맞춰 body.jump-on 토글(CSS 가 보이기/숨기기).
+function applyJumpVisibility() {
+  document.body.classList.toggle('jump-on', jumpEnabled);
+}
+
 
 function openPanel(poi) {
   const overlay = document.getElementById('overlay');
@@ -682,11 +752,22 @@ function closePanel() {
   }, 180);
 }
 
+// NPC 와 "대화"하는 상호작용인지 — 모바일 상호작용 버튼 아이콘을 💬(대화) ↔ ✋(줍기/액션)로 분기.
+const TALK_POI_TYPES = new Set(['guard', 'fruit-vendor', 'helper', 'villager']);
+function isTalkPoi(poi) {
+  return !!poi && (poi.id === 'about' || TALK_POI_TYPES.has(poi.type)); // about = 가람 NPC
+}
+
 function showPrompt(text) {
   const p = document.getElementById('prompt');
   p.querySelector('.ptxt').textContent = text;
   p.classList.add('show');
-  document.getElementById('act-btn')?.classList.add('show'); // 모바일 상호작용 버튼
+  // 모바일 상호작용 버튼 — NPC 대화면 💬 말풍선, 과일·박스 줍기 등은 ✋ 손.
+  const ab = document.getElementById('act-btn');
+  if (ab) {
+    ab.textContent = isTalkPoi(activePoi) ? '💬' : '✋';
+    ab.classList.add('show');
+  }
 }
 function hidePrompt() {
   document.getElementById('prompt').classList.remove('show');
@@ -695,6 +776,7 @@ function hidePrompt() {
 function startWorld() {
   started = true;
   document.getElementById('intro')?.classList.add('hide');
+  revealSkillBar(); // 중앙 하단 스킬바 노출
 }
 
 // ─────────────────────────────────────────────
@@ -723,6 +805,7 @@ function loop() {
 
   if (started && !frozen) updateMovement(dt);
   if (playerModel?.userData?.update) playerModel.userData.update(dt);
+  fireballs?.update(dt);
   if (inActiveRegion(wanderer)) wanderer?.update(dt, player?.position);
   for (const v of villagers) if (inActiveRegion(v)) v.update(dt, player?.position);
   if (!inspect) updateCamera(dt, t);
@@ -740,9 +823,14 @@ function updateMovement(dt) {
   const yaw     = camState.yaw;
   const forward = tmp.set(-Math.sin(yaw), 0, -Math.cos(yaw));
   const right   = tmp2.set(Math.cos(yaw), 0, -Math.sin(yaw));
+  // 시전 중에는 제자리에 고정 — 이동 입력을 무시하고 속도를 즉시 0 으로.
+  const casting = !!playerModel?.userData?.isCasting?.();
+
   const dir     = new THREE.Vector3();
-  dir.addScaledVector(forward, input.f - input.b);
-  dir.addScaledVector(right,   input.r - input.l);
+  if (!casting) {
+    dir.addScaledVector(forward, input.f - input.b);
+    dir.addScaledVector(right,   input.r - input.l);
+  }
 
   const moving = dir.lengthSq() > 0.0001;
   if (moving) {
@@ -751,7 +839,7 @@ function updateMovement(dt) {
     const speed = input.shift ? RUN_SPEED : WALK_SPEED;
     vel.lerp(dir.multiplyScalar(speed), 0.18);
   } else {
-    vel.multiplyScalar(0.8);
+    vel.multiplyScalar(casting ? 0 : 0.8); // 시전 중 즉시 정지
   }
 
   player.position.addScaledVector(vel, dt);
