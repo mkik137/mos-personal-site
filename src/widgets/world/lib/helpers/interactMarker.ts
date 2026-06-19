@@ -36,7 +36,9 @@ function makeKeycapTexture() {
   return tex;
 }
 
-export function addInteractMarker(scene, floaters, x, y, z): THREE.Sprite {
+// region: 실내 마커는 그 방의 region 으로 태그 → 방 밖에 있을 땐 애니메이션이 멈춘다
+// (생략 시 undefined = 전역 — 기존 호출부 동작 보존).
+export function addInteractMarker(scene, floaters, x, y, z, region): THREE.Sprite {
   if (!sharedTex) sharedTex = makeKeycapTexture();
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({ map: sharedTex, transparent: true, depthWrite: false }),
@@ -44,6 +46,6 @@ export function addInteractMarker(scene, floaters, x, y, z): THREE.Sprite {
   sprite.scale.set(0.4, 0.4, 1);
   sprite.position.set(x, y, z);
   scene.add(sprite);
-  floaters.push({ mesh: sprite, baseY: y, amp: 0.07, phase: x * 1.3 + z, speed: 2.2 });
+  floaters.push({ mesh: sprite, baseY: y, amp: 0.07, phase: x * 1.3 + z, speed: 2.2, region });
   return sprite;
 }

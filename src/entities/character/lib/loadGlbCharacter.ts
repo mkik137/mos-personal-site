@@ -65,16 +65,10 @@ export async function loadGlbCharacter(
   const load = (url: string): Promise<any> =>
     new Promise((resolve, reject) => loader.load(url, resolve, undefined, reject));
 
-  // 베이스 메시 + 나머지 클립 소스를 병렬 로드
-  const [baseGltf, jumpGltf, backGltf, stopGltf, magicGltf, deathGltf] =
-    await Promise.all([
-      load(BASE_URL),
-      load(JUMP_URL),
-      load(BACK_URL),
-      load(STOP_URL),
-      load(MAGIC_URL),
-      load(DEATH_URL),
-    ]);
+  // 베이스 메시(run 클립 포함)만 먼저 로드 → 첫 렌더를 막지 않는다.
+  // 나머지(jump/back/stop/magic/death — 각 최대 ~7MB)는 입력·스킬 때만 쓰이므로
+  // 아래에서 지연 로드한다. 도착 전 호출은 가드로 무시되어 현재 동작(run)이 유지된다.
+  const baseGltf = await load(BASE_URL);
 
   const base = baseGltf.scene;
   base.traverse((o) => {
@@ -117,30 +111,12 @@ export async function loadGlbCharacter(
 
   const mixer = new THREE.AnimationMixer(base);
   const runClip = stripRootMotion(baseGltf.animations[0]);
-  const jumpClip = stripRootMotion(jumpGltf.animations[0]);
-  const backClip = stripRootMotion(backGltf.animations[0]);
-  const stopClip = stripRootMotion(stopGltf.animations[0]);
-  const magicClip = stripRootMotion(magicGltf.animations[0]);
-  const deathClip = stripRootMotion(deathGltf.animations[0]);
 
+  // run 만 즉시 준비 → 달리기를 항상 재생하되 timeScale 로 다리 속도를 제어한다.
+  // jump/back/stop 은 아래에서 지연 로드되어 도착하는 대로 actions 에 채워진다.
   const actions = {
     run: mixer.clipAction(runClip),
-    jump: mixer.clipAction(jumpClip),
-    back: mixer.clipAction(backClip),
-    stop: mixer.clipAction(stopClip),
-    magic: mixer.clipAction(magicClip),
-    death: mixer.clipAction(deathClip),
   };
-  // 1회성(once-clamp) 클립 — 끝 프레임에서 멈춰 정지/공중/시전/사망 자세를 유지
-  for (const once of [actions.jump, actions.stop, actions.magic, actions.death]) {
-    once.setLoop(THREE.LoopOnce, 1);
-    once.clampWhenFinished = true;
-  }
-  // 멈추는 동작은 빠르게 재생해 반응을 즉각적으로 (Run To Stop 클립은 기본이 느림)
-  actions.stop.timeScale = 1.8;
-
-  // 달리기를 항상 재생하되, timeScale 로 다리 속도를 제어한다.
-  // 정지 시엔 'stop'(Run To Stop) 클립으로 전환해 멈추는 동작을 보여준다.
   actions.run.play();
   let active: 'run' | 'jump' | 'back' | 'stop' | 'magic' | 'death' = 'run';
 
@@ -153,9 +129,33 @@ export async function loadGlbCharacter(
   let dead = false;
   let cast: { t: number; dur: number; releaseAt: number; released: boolean; onRelease?: () => void } | null = null;
 
+  // 지연 로드 — 무거운 클립(각 ~7MB)을 백그라운드로 받아 mixer 에 붙인다.
+  // 도착 전 fadeTo 호출은 아래 가드로 무시되어 현재 동작(run)이 유지된다.
+  function addClip(
+    name: 'jump' | 'back' | 'stop',
+    url: string,
+    once: boolean,
+    timeScale = 1,
+  ): void {
+    load(url)
+      .then((gltf) => {
+        const a = mixer.clipAction(stripRootMotion(gltf.animations[0]));
+        if (once) { a.setLoop(THREE.LoopOnce, 1); a.clampWhenFinished = true; } // 끝 프레임 유지
+        if (timeScale !== 1) a.timeScale = timeScale;
+        actions[name] = a;
+      })
+      .catch((e) => console.warn('[player] 지연 클립 로드 실패:', url, e));
+  }
+  addClip('jump', JUMP_URL, true);
+  addClip('back', BACK_URL, false);
+  addClip('stop', STOP_URL, true, 1.8); // Run To Stop 은 기본이 느려 빠르게 재생
+  addClip('magic', MAGIC_URL, true);    // F 마법 시전 (끝 프레임 클램프)
+  addClip('death', DEATH_URL, true);    // 사망 (끝 프레임 클램프)
+
   function fadeTo(name: 'run' | 'jump' | 'back' | 'stop', dur = 0.18): void {
     if (name === active) return;
     const next = actions[name];
+    if (!next) return; // 아직 지연 로드 전인 클립 — 도착할 때까지 현재 동작 유지
     const prev = actions[active];
     next.reset();
     if (name === 'jump' || name === 'stop') {
@@ -193,6 +193,7 @@ export async function loadGlbCharacter(
     castMagic(onRelease?: () => void): boolean {
       if (casting || dead) return false;
       const m = actions.magic;
+      if (!m) return false; // 마법 클립이 아직 지연 로드 전 — 시전 생략
       m.reset();
       m.enabled = true;
       m.setEffectiveWeight(1);
@@ -208,15 +209,16 @@ export async function loadGlbCharacter(
     // 사망 모션 — 뒤로 쓰러진 뒤 끝 프레임에서 클램프. revive() 로 복귀.
     die(): void {
       if (dead) return;
-      dead = true; casting = false; cast = null;
       const d = actions.death;
+      if (!d) { dead = true; casting = false; cast = null; return; } // 사망 클립 미로드 — 모션 없이 상태만
+      dead = true; casting = false; cast = null;
       d.reset(); d.enabled = true; d.setEffectiveWeight(1); d.play();
       d.crossFadeFrom(actions[active], 0.2, false);
       active = 'death';
     },
     revive(): void {
       if (!dead) return;
-      dead = false; active = 'death';
+      dead = false; // active 는 die() 가 성공해 'death' 인 경우만 — fadeTo 가 알아서 전환
       fadeTo('stop', 0.2);
     },
     // speed: 수평 속도(m/s), grounded: 접지 여부, backward: 뒤로 이동 여부
@@ -229,7 +231,7 @@ export async function loadGlbCharacter(
       if (casting || dead) return; // 시전·사망 중엔 이동 모션 전환 잠금
       const cadence = THREE.MathUtils.clamp(speed / walkSpeed, 0, 2);
       actions.run.timeScale = grounded ? Math.max(cadence, 0.2) : 1;
-      actions.back.timeScale = grounded ? Math.max(cadence, 0.2) : 1;
+      if (actions.back) actions.back.timeScale = grounded ? Math.max(cadence, 0.2) : 1; // 지연 로드 가드
 
       if (!grounded) {
         fadeTo('jump');

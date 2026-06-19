@@ -116,7 +116,7 @@ export async function buildGallery(ctx): Promise<{ dome: THREE.Mesh }> {
     frame.add(border, art);
     frame.position.set(fx, 1.9, fz);
     scene.add(frame);
-    addInteractMarker(scene, floaters, fx, 3.25, fz + 0.25); // 상호작용 표시 (E 키캡)
+    addInteractMarker(scene, floaters, fx, 3.25, fz + 0.25, 'gallery'); // 상호작용 표시 (E 키캡)
     pois.push({
       id: `frame-${i}`, type: 'frame', idx: i,
       x: fx, z: fz + 0.5, r: 2.0,
@@ -129,7 +129,7 @@ export async function buildGallery(ctx): Promise<{ dome: THREE.Mesh }> {
   easel.position.set(X, 0, Z - 0.3);
   easel.rotation.y = 0.25; // 입구 쪽으로 살짝 비스듬히
   scene.add(easel);
-  addInteractMarker(scene, floaters, X, 2.35, Z - 0.3); // 상호작용 표시 (E 키캡)
+  addInteractMarker(scene, floaters, X, 2.35, Z - 0.3, 'gallery'); // 상호작용 표시 (E 키캡)
   obstacles.push({ x: X, z: Z - 0.3, r: 0.8 });
   pois.push({
     id: 'career-board', type: 'work-board',

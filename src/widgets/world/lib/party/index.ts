@@ -152,7 +152,7 @@ export async function buildParty(ctx): Promise<{ dome: THREE.Mesh }> {
   );
   disco.position.set(X, 3.3, Z - 0.4);
   scene.add(disco);
-  spinners.push({ mesh: disco, speed: 1.6 });
+  spinners.push({ mesh: disco, speed: 1.6, region: 'party' });
   const discoRod = new THREE.Mesh(
     new THREE.CylinderGeometry(0.015, 0.015, 0.7, 4),
     new THREE.MeshStandardMaterial({ color: 0x777777 }),
@@ -192,7 +192,7 @@ export async function buildParty(ctx): Promise<{ dome: THREE.Mesh }> {
     const baseY = 3.0 + (i % 2) * 0.3;
     grp.position.set(X + ox, baseY, Z + oz);
     scene.add(grp);
-    floaters.push({ mesh: grp, baseY, amp: 0.18, phase: i * 1.9, speed: 1.1 });
+    floaters.push({ mesh: grp, baseY, amp: 0.18, phase: i * 1.9, speed: 1.1, region: 'party' });
   });
 
   // ── 바닥 색종이 ──
@@ -229,7 +229,7 @@ export async function buildParty(ctx): Promise<{ dome: THREE.Mesh }> {
   gift3.position.set(X - 1.25, 0, Z - 2.1);
   gift3.rotation.y = 1.1;
   scene.add(gift1, gift2, gift3);
-  addInteractMarker(scene, floaters, X, tableTop + 0.85, Z - 2.2); // 상호작용 표시 (E 키캡)
+  addInteractMarker(scene, floaters, X, tableTop + 0.85, Z - 2.2, 'party'); // 상호작용 표시 (E 키캡)
   pois.push({
     id: 'guestbook-desk', type: 'guestbook-desk',
     x: X, z: Z - 2.2, r: 2.6,

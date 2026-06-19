@@ -58,6 +58,14 @@ function makeBubbleTexture(kind) {
   return tex;
 }
 
+// 말풍선 텍스처는 kind 당 1개면 충분 — 모든 NPC(~10명)가 공유한다.
+// (NPC 마다 128×96 CanvasTexture 2장씩 새로 만들던 것을 캐시로 대체 — GPU 메모리 절약)
+const bubbleTexCache = {};
+function getBubbleTexture(kind) {
+  if (!bubbleTexCache[kind]) bubbleTexCache[kind] = makeBubbleTexture(kind);
+  return bubbleTexCache[kind];
+}
+
 // NPC 한 명 생성 — anchor 중심 radius 안에서만 배회한다.
 //  height 는 시각적 키(머리 끝까지, 월드 단위) — 스키닝 반영 실측으로 정확히 맞춘다.
 async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, z: 0 }, radius = 8, start = anchor, floorY = 0, bubble = false, faceYaw = null, name = null }) {
@@ -149,8 +157,8 @@ async function createWanderer(ctx, { url, height, speed = 1.4, anchor = { x: 0, 
   const bubbleY = height + 0.78; // 이름표(머리 위) 위로 올려 겹치지 않게
   const bubbleTex = {};
   if (bubble) {
-    bubbleTex.dots = makeBubbleTexture('dots');
-    bubbleTex.check = makeBubbleTexture('check');
+    bubbleTex.dots = getBubbleTexture('dots');
+    bubbleTex.check = getBubbleTexture('check');
     bubbleSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: bubbleTex.dots, transparent: true, depthWrite: false }));
     bubbleSprite.scale.set(0.78, 0.585, 1);
     bubbleSprite.position.set(0, bubbleY, 0);

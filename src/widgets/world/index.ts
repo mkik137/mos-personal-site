@@ -1,1 +1,1 @@
-export { initWorld } from './lib/world';
+export { initWorld, disposeWorld } from './lib/world';

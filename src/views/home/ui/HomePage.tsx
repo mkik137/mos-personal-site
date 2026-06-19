@@ -26,15 +26,20 @@ export default function HomePage() {
     }, 9000);
 
     let cancelled = false;
+    let dispose: (() => void) | null = null;
     (async () => {
       await import("@/features/guestbook");
-      const { initWorld } = await import("@/widgets/world");
-      if (!cancelled) initWorld();
+      const mod = await import("@/widgets/world");
+      if (cancelled) return;
+      dispose = mod.disposeWorld;
+      mod.initWorld();
     })();
 
     return () => {
       cancelled = true;
       window.clearTimeout(failsafe);
+      // 언마운트(라우트 이동·StrictMode 재마운트) 시 엔진 완전 해제 → RAF·WebGL·리스너 누수 방지
+      dispose?.();
     };
   }, []);
 
