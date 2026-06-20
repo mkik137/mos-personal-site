@@ -16,7 +16,7 @@ export const SKILL_CATALOG = [
     shots: [{ a: 0, speed: 17, size: 1.0, life: 1.1 }] },
   { id: 'triple', name: '삼연사', icon: '☄️', desc: '세 갈래로 퍼지는 화염탄.', model: 'fire',
     shots: [{ a: -0.28, speed: 16, size: 0.85, life: 1.05 }, { a: 0, speed: 16, size: 0.85, life: 1.05 }, { a: 0.28, speed: 16, size: 0.85, life: 1.05 }] },
-  { id: 'meteor', name: '메테오', icon: '💥', desc: '불타는 운석을 떨어뜨린다.', model: 'meteor',
+  { id: 'meteor', name: '스톤 불릿', icon: '🪨', desc: '단단한 바윗덩이를 쏘아 보낸다.', model: 'meteor',
     shots: [{ a: 0, speed: 11, size: 1.7, life: 1.5 }] },
   { id: 'bolt', name: '라이트닝', icon: '⚡', desc: '빠르게 직진하는 번개.', model: 'bolt',
     shots: [{ a: 0, speed: 27, size: 0.62, life: 0.95 }] },

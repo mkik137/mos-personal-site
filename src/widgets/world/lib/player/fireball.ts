@@ -16,7 +16,7 @@ const SIZE  = 1.0; // 정규화 높이(m)
 //  emissive null     → 원래 재질로 조명 받음(바위): 회색 돌 본연의 색 유지.
 const MODELS: Record<string, { url: string; emissive: [number, number, number] | null }> = {
   fire:   { url: '/glb/character/player/Fire.glb', emissive: [1.0, 0.55, 0.18] }, // 파이어볼·삼연사
-  meteor: { url: '/glb/skill/Meteor.glb',          emissive: null },               // 메테오(혜성/운석 — 텍스처 발광색 유지)
+  meteor: { url: '/glb/skill/Meteor.glb',          emissive: null },               // 스톤 불릿(분화구 텍스처 바위 — 발광 없이 자연 재질, 파이어볼과 확실히 구분)
   bolt:   { url: '/glb/skill/Bolt.glb',            emissive: [0.72, 0.82, 1.0] },  // 라이트닝(번개)
 };
 const DEFAULT_MODEL = 'fire';
